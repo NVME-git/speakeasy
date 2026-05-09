@@ -1,12 +1,19 @@
 # Speakeasy
 
+> **Live:** <https://nvme-git.github.io/speakeasy/>
+
 A recording instrument. Capture a take, divide it into four artefacts (full / audio / silent footage / words), then read the audio's pitch, volume, and pace plotted over time.
 
-Built around Vinh Giang's [_communication mirror_ technique](https://youtube.com/shorts/mXPIJosPsVU) — film yourself, then review the take three separate ways (sound only, picture only, transcript with filler words highlighted) so you see and hear yourself exactly as others do. Speakeasy turns that ritual into a single click.
+Built around two pieces of advice from speaking coach Vinh Giang:
+
+1. **The [_communication mirror_](https://youtube.com/shorts/mXPIJosPsVU)** — film yourself, then review the take three separate ways (sound only, picture only, transcript with filler words highlighted) so you see and hear yourself exactly as others do.
+2. **The [_vocal toolbox_](https://www.youtube.com/watch?v=6fHoN6MR6MI)** — speed, pitch, volume, and pause are the four tools that turn a flat voice into a full one.
+
+Speakeasy turns the first into a single click (the four artefacts) and the second into a chart (the analysis view, which measures three of the four — pitch, volume, pace — with the fourth showing up as the gaps between them).
 
 Single-file web app. No bundler, no dependencies you have to install — just open it.
 
-![Speakeasy in its idle state — the masthead, the communication-mirror demo, recorder, and the four-artefact placeholder](docs/screenshot.png)
+![Speakeasy: masthead, the communication-mirror demo, recorder, four-artefact placeholder, and the vocal-variety demo above the analysis](docs/screenshot.png)
 
 ## Run it
 
@@ -48,6 +55,20 @@ Three rows, shared time axis, brass on coal:
 - **Pace (wpm)** — Whisper's word timestamps, counted in a 3 s window centred on each sample point.
 
 Where you were silent — anywhere the audio falls below −45 dB — the line **breaks** and a faint band shades that span. Speaking is brass; silence is a gap.
+
+## Hosting
+
+Speakeasy is a single static HTML file with no build step, so it runs on any plain static host. **GitHub Pages works out of the box** — `getUserMedia` only requires a secure context, which Pages serves over HTTPS by default. The Whisper model is fetched from `cdn.jsdelivr.net` and cached in your browser; no server-side anything.
+
+This repo's Pages site is enabled on `main` at the root: <https://nvme-git.github.io/speakeasy/>. To enable it elsewhere:
+
+```bash
+gh api -X POST repos/<owner>/<repo>/pages \
+  -f "source[branch]=main" \
+  -f "source[path]=/"
+```
+
+Other zero-config hosts that work the same way: Cloudflare Pages, Netlify, Vercel (treat it as a static site), Surge, or just a `python3 -m http.server` on your laptop.
 
 ## Privacy
 
