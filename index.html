@@ -572,10 +572,22 @@
       animation: fade-in 700ms 240ms var(--ease) both;
     }
 
+    /* Stage frame — wraps the Mirror/Audience toggle above the stage so
+       the two read as a group (toggle is the stage's label, not a setting
+       buried under the recorder). Tight internal gap; the .hero gap
+       handles separation from the conductor below. */
+    .stage-frame {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      max-width: 760px;
+    }
+
     .stage {
       position: relative;
       width: 100%;
-      max-width: 760px;
       aspect-ratio: 16/9;
       background: var(--velvet);
       border: 1px solid var(--rule);
@@ -1365,6 +1377,26 @@
   </section>
 
   <section class="hero">
+    <div class="stage-frame">
+      <div class="view-toggle hidden" id="view-toggle" role="radiogroup" aria-label="Stage view">
+        <button class="view-toggle-opt" id="view-mirror" type="button" role="radio" aria-pressed="true" data-view="mirror">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="8" r="3.2"/>
+            <path d="M5 21c1.4-3.6 4-5.4 7-5.4s5.6 1.8 7 5.4"/>
+          </svg>
+          Mirror
+        </button>
+        <button class="view-toggle-opt" id="view-audience" type="button" role="radio" aria-pressed="false" data-view="audience">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="6" cy="9" r="2"/>
+            <circle cx="12" cy="8" r="2.3"/>
+            <circle cx="18" cy="9" r="2"/>
+            <path d="M2 18c1-2.4 2.5-3.6 4-3.6s2.5 1.2 3 2.4M11 18c.5-1.5 1.5-2.4 3-2.4s2.5.9 3 2.4M18 18c0-1.4 1-2.6 2-2.6"/>
+          </svg>
+          Audience
+        </button>
+      </div>
+
     <div class="stage" id="stage">
       <video id="preview" autoplay muted playsinline></video>
 
@@ -1389,6 +1421,7 @@
         <canvas id="meter-canvas"></canvas>
       </div>
     </div>
+    </div>
 
     <div class="conductor">
       <div>
@@ -1403,24 +1436,6 @@
         <p class="conductor-status" id="status">Awaiting consent.</p>
         <p class="conductor-hint" id="hint">Camera · microphone · this tab only</p>
         <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 14px; align-items: center;">
-          <div class="view-toggle hidden" id="view-toggle" role="radiogroup" aria-label="Stage view">
-            <button class="view-toggle-opt" id="view-mirror" type="button" role="radio" aria-pressed="true" data-view="mirror">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="12" cy="8" r="3.2"/>
-                <path d="M5 21c1.4-3.6 4-5.4 7-5.4s5.6 1.8 7 5.4"/>
-              </svg>
-              Mirror
-            </button>
-            <button class="view-toggle-opt" id="view-audience" type="button" role="radio" aria-pressed="false" data-view="audience">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="6" cy="9" r="2"/>
-                <circle cx="12" cy="8" r="2.3"/>
-                <circle cx="18" cy="9" r="2"/>
-                <path d="M2 18c1-2.4 2.5-3.6 4-3.6s2.5 1.2 3 2.4M11 18c.5-1.5 1.5-2.4 3-2.4s2.5.9 3 2.4M18 18c0-1.4 1-2.6 2-2.6"/>
-              </svg>
-              Audience
-            </button>
-          </div>
           <button class="text-btn hidden" id="btn-reset">▸ Record another</button>
         </div>
       </div>
