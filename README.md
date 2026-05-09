@@ -4,6 +4,8 @@ A recording instrument. Capture a take, divide it into four artefacts (full / au
 
 Single-file web app. No bundler, no dependencies you have to install — just open it.
 
+![Speakeasy in its idle state — the masthead, recorder, and the four-artefact placeholder](docs/screenshot.png)
+
 ## Run it
 
 `getUserMedia` requires a secure context, so it won't run from `file://` in every browser. The simplest path:
