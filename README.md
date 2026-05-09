@@ -2,9 +2,11 @@
 
 A recording instrument. Capture a take, divide it into four artefacts (full / audio / silent footage / words), then read the audio's pitch, volume, and pace plotted over time.
 
+Built around Vinh Giang's [_communication mirror_ technique](https://youtube.com/shorts/mXPIJosPsVU) — film yourself, then review the take three separate ways (sound only, picture only, transcript with filler words highlighted) so you see and hear yourself exactly as others do. Speakeasy turns that ritual into a single click.
+
 Single-file web app. No bundler, no dependencies you have to install — just open it.
 
-![Speakeasy in its idle state — the masthead, recorder, and the four-artefact placeholder](docs/screenshot.png)
+![Speakeasy in its idle state — the masthead, the communication-mirror demo, recorder, and the four-artefact placeholder](docs/screenshot.png)
 
 ## Run it
 
