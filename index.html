@@ -560,19 +560,22 @@
     }
 
     /* ─── hero recorder ─────────────────────────────────────────────────── */
+    /* Centered vertical stack — stage on top, record button + meta below.
+       The stage caps at 760 px so it stays a comfortable focal point on
+       wide screens; the conductor sits directly under it, axis-aligned
+       with the stage's centre line. */
     .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 280px;
-      gap: 40px;
-      align-items: stretch;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 36px;
       animation: fade-in 700ms 240ms var(--ease) both;
-    }
-    @media (max-width: 880px) {
-      .hero { grid-template-columns: 1fr; }
     }
 
     .stage {
       position: relative;
+      width: 100%;
+      max-width: 760px;
       aspect-ratio: 16/9;
       background: var(--velvet);
       border: 1px solid var(--rule);
@@ -675,14 +678,16 @@
     .meter.visible { opacity: 1; }
     .meter canvas { width: 100%; height: 100%; display: block; }
 
-    /* Conductor column — record button + status, sits to the right of stage. */
+    /* Conductor column — record button + status, centred under the stage. */
     .conductor {
-      display: flex; flex-direction: column;
-      gap: 32px;
-      padding: 8px 0;
-    }
-    @media (max-width: 880px) {
-      .conductor { padding: 0; align-items: center; }
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      padding: 0;
+      width: 100%;
+      max-width: 460px;
+      text-align: center;
     }
 
     .rec-btn {
@@ -796,8 +801,10 @@
     .rec-btn[data-state="recording"] ~ .rec-label { color: var(--brass); }
 
     .conductor-meta {
+      width: 100%;
       border-top: 1px solid var(--rule);
       padding-top: 24px;
+      text-align: center;
     }
     .conductor-status {
       font-family: var(--display);
@@ -1395,7 +1402,7 @@
       <div class="conductor-meta">
         <p class="conductor-status" id="status">Awaiting consent.</p>
         <p class="conductor-hint" id="hint">Camera · microphone · this tab only</p>
-        <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start;">
+        <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 14px; align-items: center;">
           <div class="view-toggle hidden" id="view-toggle" role="radiogroup" aria-label="Stage view">
             <button class="view-toggle-opt" id="view-mirror" type="button" role="radio" aria-pressed="true" data-view="mirror">
               <svg viewBox="0 0 24 24" aria-hidden="true">
