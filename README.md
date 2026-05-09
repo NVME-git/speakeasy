@@ -62,9 +62,9 @@ A small video of the take sits beside a big play button at the top of the analys
 
 - **Access button at the top.** A brass "▸ Grant camera + microphone access" link sits just below the tagline so the permission prompt is reachable without scrolling to the recorder. After grant, it flips to "✓ Camera open · ready when you are".
 - **Always-on timer.** As soon as the camera opens, a `00:00` chip appears top-left of the stage in dimmed brass. When recording starts, it brightens and the dot pulses oxblood.
-- **Mirror / Audience toggle.** A segmented pill above the stage swaps the live preview for a short animated clip of a speakeasy audience (`assets/SpeakEasyAudience.mp4`, encoded as a palindrome so a native `loop` plays forward → reverse → forward without a jump-cut). Helpful for speakers who freeze when staring at their own face. The recording itself is unaffected — the camera keeps capturing the speaker; only the *preview* changes.
+- **Mirror / Audience toggle.** A segmented pill above the stage swaps the live preview for a still photograph of a speakeasy audience (`assets/SpeakEasyAudience.png`). Helpful for speakers who freeze when staring at their own face. The recording itself is unaffected — the camera keeps capturing the speaker; only the *preview* changes.
 
-  ![A still from the animated audience overlay](assets/SpeakEasyAudience.png)
+  ![What the audience toggle shows during recording](assets/SpeakEasyAudience.png)
 
 ## Mobile
 
