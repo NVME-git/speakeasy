@@ -176,53 +176,57 @@
       background: linear-gradient(to top, rgba(10,8,5,0.45), transparent 22%);
     }
 
-    /* ─── audience toggle (in the conductor column) ────────────────────── */
-    .audience-toggle {
+    /* ─── view toggle: Mirror ↔ Audience ───────────────────────────────── */
+    /* Two-state segmented control. Both labels stay visible so the user
+       always knows the alternative; the active option is filled brass. */
+    .view-toggle {
       display: inline-flex;
-      align-items: center; gap: 12px;
-      background: transparent;
+      background: var(--ink);
       border: 1px solid var(--rule);
       border-radius: 999px;
-      padding: 6px 14px 6px 6px;
-      cursor: pointer;
-      font-family: inherit;
-      transition: border-color 220ms var(--ease), background 220ms var(--ease);
-    }
-    .audience-toggle:hover { border-color: var(--brass-dim); background: rgba(201,168,120,0.04); }
-    .audience-toggle:focus-visible {
-      outline: none;
-      border-color: var(--brass);
-      box-shadow: 0 0 0 3px rgba(201, 168, 120, 0.18);
-    }
-    .audience-toggle-track {
-      width: 36px; height: 20px;
-      border-radius: 999px;
-      background: var(--rule);
+      padding: 3px;
+      gap: 0;
       position: relative;
-      transition: background 240ms var(--ease);
+      isolation: isolate;
     }
-    .audience-toggle-knob {
-      position: absolute;
-      top: 2px; left: 2px;
-      width: 16px; height: 16px;
-      border-radius: 50%;
-      background: var(--ash);
-      transition: transform 280ms var(--ease-spring), background 240ms var(--ease);
-    }
-    .audience-toggle[aria-pressed="true"] .audience-toggle-track { background: rgba(201, 168, 120, 0.25); }
-    .audience-toggle[aria-pressed="true"] .audience-toggle-knob {
-      transform: translateX(16px);
-      background: var(--brass);
-    }
-    .audience-toggle-label {
+    .view-toggle-opt {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      background: transparent;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
       font-family: var(--mono);
       font-size: 10px;
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--ash);
-      transition: color 240ms var(--ease);
+      transition: background 280ms var(--ease), color 280ms var(--ease);
+      position: relative;
+      z-index: 1;
     }
-    .audience-toggle[aria-pressed="true"] .audience-toggle-label { color: var(--brass); }
+    .view-toggle-opt:hover { color: var(--paper-soft); }
+    .view-toggle-opt:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(201, 168, 120, 0.35);
+    }
+    .view-toggle-opt[aria-pressed="true"] {
+      background: var(--brass);
+      color: var(--ink);
+    }
+    .view-toggle-opt[aria-pressed="true"]:hover {
+      background: var(--brass-hot);
+    }
+    .view-toggle-opt svg {
+      width: 13px; height: 13px;
+      stroke: currentColor;
+      stroke-width: 1.6;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
 
     /* ─── analysis player (at top of analysis card) ────────────────────── */
     .analysis-player {
@@ -344,6 +348,9 @@
     .analysis-now-stats .stat-value.empty { color: var(--whisper); }
 
     /* ─── playhead lines (inside each analysis canvas wrap) ────────────── */
+    /* Position is driven by requestAnimationFrame (~60 fps) while playing,
+       so we only transition opacity here. A `left` transition would fight
+       the rAF updates and reintroduce visible staggering. */
     .playhead {
       position: absolute; top: 0; bottom: 0;
       width: 1.5px;
@@ -353,8 +360,9 @@
       left: 0;
       transform: translateX(-50%);
       opacity: 0;
-      transition: opacity 280ms var(--ease), left 60ms linear;
+      transition: opacity 280ms var(--ease);
       z-index: 2;
+      will-change: left;
     }
     .playhead::before {
       content: "";
@@ -1336,12 +1344,24 @@
         <p class="conductor-status" id="status">Awaiting consent.</p>
         <p class="conductor-hint" id="hint">Camera · microphone · this tab only</p>
         <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start;">
-          <button class="audience-toggle hidden" id="btn-audience" type="button" aria-pressed="false" aria-label="Replace the live preview with an audience image">
-            <span class="audience-toggle-track" aria-hidden="true">
-              <span class="audience-toggle-knob"></span>
-            </span>
-            <span class="audience-toggle-label">Show audience</span>
-          </button>
+          <div class="view-toggle hidden" id="view-toggle" role="radiogroup" aria-label="Stage view">
+            <button class="view-toggle-opt" id="view-mirror" type="button" role="radio" aria-pressed="true" data-view="mirror">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="8" r="3.2"/>
+                <path d="M5 21c1.4-3.6 4-5.4 7-5.4s5.6 1.8 7 5.4"/>
+              </svg>
+              Mirror
+            </button>
+            <button class="view-toggle-opt" id="view-audience" type="button" role="radio" aria-pressed="false" data-view="audience">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="6" cy="9" r="2"/>
+                <circle cx="12" cy="8" r="2.3"/>
+                <circle cx="18" cy="9" r="2"/>
+                <path d="M2 18c1-2.4 2.5-3.6 4-3.6s2.5 1.2 3 2.4M11 18c.5-1.5 1.5-2.4 3-2.4s2.5.9 3 2.4M18 18c0-1.4 1-2.6 2-2.6"/>
+              </svg>
+              Audience
+            </button>
+          </div>
           <button class="text-btn hidden" id="btn-reset">▸ Record another</button>
         </div>
       </div>
@@ -1647,11 +1667,14 @@ const els = {
   statVolume:      $('stat-volume'),
   statPace:        $('stat-pace'),
   analysisAxis:    $('analysis-axis'),
-  // New refs for the access strip, audience toggle, and analysis player.
+  // New refs for the access strip, view (Mirror/Audience) toggle, and the
+  // analysis player video.
   accessStrip:     $('access-strip'),
   btnAccess:       $('btn-access'),
   audienceOverlay: $('audience-overlay'),
-  btnAudience:     $('btn-audience'),
+  viewToggle:      $('view-toggle'),
+  viewMirror:      $('view-mirror'),
+  viewAudience:    $('view-audience'),
   analysisVideo:   $('analysis-video'),
   analysisPlayBtn: $('analysis-play-btn'),
   nowTime:         $('now-time'),
@@ -1850,8 +1873,9 @@ async function initCamera() {
   setHint('Press the brass when you\'re ready');
   // Mark the top-of-page access button as fulfilled.
   els.accessStrip.classList.add('granted');
-  // Reveal the audience toggle now that there's actually something to swap.
-  els.btnAudience.classList.remove('hidden');
+  // Reveal the Mirror / Audience toggle now that there's actually
+  // something to swap between.
+  els.viewToggle.classList.remove('hidden');
   // Pre-warm the Whisper model in the background so the first transcription
   // doesn't make the user wait for a 145 MB download AND a recording.
   prewarmWhisper();
@@ -2661,20 +2685,47 @@ els.analysisPlayBtn.addEventListener('click', () => {
   else v.pause();
 });
 
+// Drive the playhead from requestAnimationFrame while the video is
+// playing — `timeupdate` only fires ~4 times per second, which made the
+// playhead jump in 250 ms steps. rAF runs at the display refresh rate
+// (~60 fps) so the line sweeps smoothly across the charts.
+let playRaf = null;
+function tickPlayhead() {
+  syncPlayheadFromVideo();
+  if (els.analysisVideo && !els.analysisVideo.paused && !els.analysisVideo.ended) {
+    playRaf = requestAnimationFrame(tickPlayhead);
+  } else {
+    playRaf = null;
+  }
+}
+function startPlayheadLoop() {
+  if (playRaf == null) playRaf = requestAnimationFrame(tickPlayhead);
+}
+function stopPlayheadLoop() {
+  if (playRaf != null) { cancelAnimationFrame(playRaf); playRaf = null; }
+}
+
 els.analysisVideo.addEventListener('play', () => {
   els.analysisPlayBtn.dataset.state = 'playing';
   els.analysisPlayBtn.setAttribute('aria-label', 'Pause the take');
   document.querySelectorAll('[data-playhead]').forEach((p) => p.classList.add('active'));
+  startPlayheadLoop();
 });
 els.analysisVideo.addEventListener('pause', () => {
   els.analysisPlayBtn.dataset.state = 'paused';
   els.analysisPlayBtn.setAttribute('aria-label', 'Play the take');
+  stopPlayheadLoop();
+  // One last sync so the playhead lands exactly where the video paused.
+  syncPlayheadFromVideo();
 });
 els.analysisVideo.addEventListener('ended', () => {
   els.analysisPlayBtn.dataset.state = 'paused';
   els.analysisPlayBtn.setAttribute('aria-label', 'Play the take');
+  stopPlayheadLoop();
+  syncPlayheadFromVideo();
 });
-els.analysisVideo.addEventListener('timeupdate', syncPlayheadFromVideo);
+// `seeked` fires after a click-to-seek on a chart finishes — gives an
+// instant final position even when the video is paused.
 els.analysisVideo.addEventListener('seeked', syncPlayheadFromVideo);
 
 // Click-to-seek on any chart. Maps the click x-position to a time and
@@ -2709,23 +2760,32 @@ els.btnReset.addEventListener('click', resetForAnother);
 // the button + reveals the "✓ Camera open" line.
 els.btnAccess.addEventListener('click', initCamera);
 
-// Audience toggle — replaces the live preview with the placeholder image
-// while leaving the underlying MediaStream untouched (recording is
-// unaffected). State persists in localStorage so the user's preference
+// View toggle — Mirror (camera preview) ↔ Audience (placeholder image).
+// Underlying MediaStream is untouched in either mode, so recording always
+// captures the speaker. State persists in localStorage so the preference
 // carries between sessions.
-const AUDIENCE_KEY = 'speakeasy.audience';
-function setAudienceMode(on) {
-  els.btnAudience.setAttribute('aria-pressed', on ? 'true' : 'false');
-  els.stage.classList.toggle('audience', on);
+const VIEW_KEY = 'speakeasy.view';
+function setView(view) {
+  // view = 'mirror' | 'audience'
+  const isAudience = view === 'audience';
+  els.viewMirror.setAttribute('aria-pressed', isAudience ? 'false' : 'true');
+  els.viewAudience.setAttribute('aria-pressed', isAudience ? 'true' : 'false');
+  els.stage.classList.toggle('audience', isAudience);
 }
 try {
-  if (localStorage.getItem(AUDIENCE_KEY) === '1') setAudienceMode(true);
+  // Backwards-compat: older builds wrote 'speakeasy.audience' = '1' for
+  // audience mode. Honour either key.
+  const stored = localStorage.getItem(VIEW_KEY) ||
+    (localStorage.getItem('speakeasy.audience') === '1' ? 'audience' : null);
+  if (stored === 'audience') setView('audience');
 } catch (_) {}
-els.btnAudience.addEventListener('click', () => {
-  const isOn = els.btnAudience.getAttribute('aria-pressed') === 'true';
-  const next = !isOn;
-  setAudienceMode(next);
-  try { localStorage.setItem(AUDIENCE_KEY, next ? '1' : '0'); } catch (_) {}
+els.viewMirror.addEventListener('click', () => {
+  setView('mirror');
+  try { localStorage.setItem(VIEW_KEY, 'mirror'); } catch (_) {}
+});
+els.viewAudience.addEventListener('click', () => {
+  setView('audience');
+  try { localStorage.setItem(VIEW_KEY, 'audience'); } catch (_) {}
 });
 
 document.querySelectorAll('.text-btn[data-target]').forEach((btn) => {
