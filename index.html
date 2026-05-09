@@ -160,20 +160,20 @@
     .audience-overlay {
       position: absolute; inset: 0;
       background: var(--velvet) center / cover no-repeat;
-      background-image: url("assets/audience-placeholder.svg");
+      background-image: url("assets/SpeakEasyAudience.png");
       opacity: 0;
       pointer-events: none;
       transition: opacity 400ms var(--ease);
     }
     .stage.audience .audience-overlay { opacity: 1; }
-    /* Soft brass vignette pulled across the audience image so the placeholder
-       feels framed and the bottom remains readable for the meter overlay. */
+    /* Subtle bottom shade only — the image has its own depth and warm
+       lighting, so the heavy radial vignette from the SVG placeholder is
+       too much. Just darken the very bottom so the volume-meter stays
+       legible during recording. */
     .audience-overlay::after {
       content: "";
       position: absolute; inset: 0;
-      background:
-        radial-gradient(ellipse 90% 70% at 50% 40%, transparent 30%, rgba(10,8,5,0.6) 100%),
-        linear-gradient(to top, rgba(10,8,5,0.55), transparent 30%);
+      background: linear-gradient(to top, rgba(10,8,5,0.45), transparent 22%);
     }
 
     /* ─── audience toggle (in the conductor column) ────────────────────── */
