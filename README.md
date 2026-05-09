@@ -66,6 +66,16 @@ A small video of the take sits beside a big play button at the top of the analys
 
   ![What the audience toggle shows during recording](assets/SpeakEasyAudience.png)
 
+## Mobile
+
+Works on Android Chrome and iOS Safari 14.1+. Several adaptations kick in automatically:
+
+- **No auto-download.** `<a download>` on a blob URL is unreliable on iOS Safari (it navigates the page instead of downloading, killing the session). On phones the four artefact cards stay on the page and you tap **Save** when you want one.
+- **Native share sheet.** Save uses the Web Share API (`navigator.share({files})`) where available — opens the system share sheet so you can pick *Save to Files*, AirDrop, or send straight to a chat app.
+- **Smaller Whisper model.** Mobile loads `whisper-tiny.en` (~39 MB) instead of `base.en` (~145 MB) so iOS Safari's WASM memory cap doesn't OOM on long takes.
+- **Portrait camera.** When the device is held in portrait, `getUserMedia` is asked for a 720×1280 stream and the stage frame switches to a 9:16 aspect ratio — no letterboxing.
+- **Add to Home Screen.** A web-app manifest + apple-touch-icon mean iOS Safari's "Add to Home Screen" gives you a real app icon (italic brass S on coal) that opens Speakeasy in standalone mode.
+
 ## Hosting
 
 Speakeasy is a single static HTML file with no build step, so it runs on any plain static host. **GitHub Pages works out of the box** — `getUserMedia` only requires a secure context, which Pages serves over HTTPS by default. The Whisper model is fetched from `cdn.jsdelivr.net` and cached in your browser; no server-side anything.

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Speakeasy">
+  <!-- Editorial-noir app icon: a brass italic 'S' on coal, framed by a thin
+       deco rectangle. Text is rendered through the system's serif so the
+       favicon doesn't depend on Fraunces being available, but the letterform
+       shape stays close to the wordmark. -->
+  <defs>
+    <radialGradient id="halo" cx="50%" cy="18%" r="80%">
+      <stop offset="0%"  stop-color="#c9a878" stop-opacity="0.16"/>
+      <stop offset="55%" stop-color="#c9a878" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#e3c08e"/>
+      <stop offset="100%" stop-color="#c9a878"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Coal field with a soft warm halo at the top, like a single overhead bulb -->
+  <rect width="512" height="512" rx="96" fill="#0a0805"/>
+  <rect width="512" height="512" rx="96" fill="url(#halo)"/>
+
+  <!-- Thin brass deco frame, inset 32px -->
+  <rect x="40" y="40" width="432" height="432" rx="64"
+        fill="none" stroke="#c9a878" stroke-opacity="0.22" stroke-width="2"/>
+
+  <!-- Italic serif 'S' centred. The font-family chain falls back through
+       commonly installed serifs so this looks consistent everywhere a
+       browser renders SVG. Inside rasterized PNGs the system serif is
+       baked in. -->
+  <text x="256" y="378" text-anchor="middle"
+        font-family="Cormorant Garamond, Georgia, 'Times New Roman', serif"
+        font-style="italic"
+        font-weight="500"
+        font-size="400"
+        letter-spacing="-6"
+        fill="url(#brass)">S</text>
+
+  <!-- Tiny editorial accent — a single brass dot under the 'S' so the icon
+       has a deliberate punctuation mark, deco-style. -->
+  <circle cx="256" cy="430" r="5" fill="#c9a878" fill-opacity="0.45"/>
+</svg>

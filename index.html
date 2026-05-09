@@ -2,9 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0805">
+  <meta name="description" content="A recording instrument: capture a take, divide it into full / audio / silent video / transcript, with in-browser Whisper transcription and a pitch / volume / pace analysis view.">
   <title>Speakeasy — A Recording Instrument</title>
+
+  <!-- Favicon + PWA. The SVG covers modern browsers; the PNGs are for
+       iOS home-screen icons (which don't honour SVG) and Android. -->
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Speakeasy">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1239,6 +1251,46 @@
     }
 
     .hidden { display: none !important; }
+
+    /* ─── mobile fine-tuning (≤ 640 px) ────────────────────────────────── */
+    /* The desktop layout is generous on negative space — at phone widths
+       that becomes wasted real estate. Compress padding and a few component
+       sizes so the recorder fits on a single screen. */
+    @media (max-width: 640px) {
+      main { padding: 32px 18px 80px; }
+      .masthead { padding-bottom: 18px; gap: 14px; }
+      .masthead-meta { font-size: 10px; }
+      .tagline { margin: 24px 0 32px; font-size: 17px; }
+      .access-strip { margin: -16px 0 36px; }
+      .hero { gap: 28px; }
+      .conductor { gap: 22px; align-items: center; padding: 0; }
+      .rec-btn { width: 144px; height: 144px; }
+      .rec-core { width: 70px; height: 70px; }
+      .rec-btn[data-state="recording"] .rec-core { width: 32px; height: 32px; }
+      .conductor-meta { width: 100%; text-align: center; padding-top: 18px; }
+      .conductor-meta > div { align-items: center !important; }
+      .artefact { padding: 22px 20px 18px; min-height: 0; }
+      .artefact-num { font-size: 30px; }
+      .artefact-titles h3 { font-size: 17px; }
+      .analysis-card { padding: 22px 20px 18px; }
+      .analysis-row { padding: 14px 0; gap: 8px; }
+      .analysis-canvas-wrap { height: 96px; }
+      .analysis-axis { margin-left: 0; }
+      .colophon { margin-top: 56px; padding-top: 28px; }
+      .motivation, .vocal-variety, .motivation.reversed { padding: 22px 0; }
+      .collapsible { margin: 12px 0; }
+      .collapse-bar { padding: 14px 0; gap: 10px; }
+      .collapse-bar-meta { display: none; }
+      .timecode { top: 12px; left: 12px; font-size: 12px; padding: 6px 10px 6px 9px; }
+      .meter { height: 48px; }
+    }
+
+    /* When the user holds the phone in portrait, the 16:9 stage becomes a
+       tiny letterbox. Drop to a 9:16 frame so the camera preview (also
+       requested in portrait, see initCamera) fills it. */
+    @media (max-width: 640px) and (orientation: portrait) {
+      .stage { aspect-ratio: 9 / 16; max-height: 60vh; }
+    }
   </style>
 </head>
 <body>
@@ -1604,10 +1656,11 @@
     <p class="colophon-label">A note on the<br>fourth artefact</p>
     <p class="colophon-text">
       Transcription runs <em>entirely in the browser</em>. The model is OpenAI's
-      Whisper (<code>base.en</code>) compiled to ONNX and served via
-      <code>@xenova/transformers</code>; on first use the weights download once
-      (≈ 145 MB) and live thereafter in your browser cache. Nothing is sent to
-      any server, and the next recording transcribes instantly.
+      Whisper compiled to ONNX and served via <code>@xenova/transformers</code>;
+      on first use the weights download once and live thereafter in your
+      browser cache. Desktop loads <code>base.en</code> (≈ 145 MB); phones
+      load <code>tiny.en</code> (≈ 39 MB) so iOS Safari doesn't run out of
+      memory. Nothing is sent to any server.
     </p>
   </section>
 
@@ -1625,6 +1678,26 @@ import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers
 // and the base.en model is tiny enough that CPU inference is plenty fast.
 env.allowLocalModels = false;
 env.useBrowserCache = true;
+
+// Mobile detection — used to pick a smaller Whisper model, skip the
+// auto-download (iOS Safari navigates the page on `<a download>`), use
+// Web Share for saves, and request a portrait camera. Touch + small-side
+// viewport is the most reliable signal because UA strings lie.
+const IS_MOBILE = (() => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = (navigator.userAgent || '').toLowerCase();
+  if (/iphone|ipod|android.*mobile|blackberry|iemobile|opera mini/i.test(ua)) return true;
+  if (/ipad/i.test(ua)) return true;
+  // iPadOS reports as Mac. Touch + a smallish min-side gives it away.
+  return navigator.maxTouchPoints > 1 &&
+    Math.min(window.innerWidth, window.innerHeight) < 1100;
+})();
+
+// On mobile prefer the tiny model — base.en's ~145 MB / 350-500 MB inference
+// footprint pushes iOS Safari into out-of-memory territory on older devices.
+// tiny.en is ~39 MB, slightly less accurate but reliable.
+const WHISPER_MODEL = IS_MOBILE ? 'Xenova/whisper-tiny.en' : 'Xenova/whisper-base.en';
+const WHISPER_SIZE_LABEL = IS_MOBILE ? '≈ 39 MB' : '≈ 145 MB';
 
 // ── DOM refs ────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
@@ -1853,9 +1926,17 @@ window.addEventListener('resize', () => {
 async function initCamera() {
   setStatus('Asking your browser for the room…');
   setHint('Granting access · please confirm');
+  // Match the requested aspect to the device orientation so the preview
+  // doesn't end up letter-boxed. Phones in portrait get a 720×1280 ideal;
+  // everything else stays at desktop 1280×720. The camera will substitute
+  // whatever it actually has if the ideal isn't available.
+  const portrait = IS_MOBILE && window.innerHeight > window.innerWidth;
+  const videoConstraints = portrait
+    ? { width: { ideal: 720 },  height: { ideal: 1280 }, facingMode: 'user' }
+    : { width: { ideal: 1280 }, height: { ideal: 720 },  facingMode: 'user' };
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+      video: videoConstraints,
       audio: { echoCancellation: true, noiseSuppression: true },
     });
   } catch (e) {
@@ -1961,17 +2042,28 @@ async function stopRecording() {
     showTranscriptError(err);
   });
 
-  // Save the three media artefacts immediately to the user's Downloads
-  // folder. Text is saved later, after Whisper finishes.
-  const targets = ['full', 'audio', 'video'];
-  for (let i = 0; i < targets.length; i++) {
-    setTimeout(() => saveTarget(targets[i]), i * 250);
+  // Auto-save to Downloads only on desktop. iOS Safari (and sometimes
+  // Android Chrome) treats `<a download>` on a blob URL as a navigation
+  // rather than a download — that would replace the page mid-flow and
+  // discard the in-memory recording. On mobile, the user taps the Save
+  // button on each artefact card (which routes through Web Share where
+  // available — see saveTarget).
+  if (!IS_MOBILE) {
+    const targets = ['full', 'audio', 'video'];
+    for (let i = 0; i < targets.length; i++) {
+      setTimeout(() => saveTarget(targets[i]), i * 250);
+    }
   }
 
   setRecState('armed');
   els.btnReset.classList.remove('hidden');
-  setStatus('Saved to your Downloads folder.', 'ok');
-  setHint('Press the brass for another take');
+  if (IS_MOBILE) {
+    setStatus('Take divided.', 'ok');
+    setHint('Tap Save on each card to keep it');
+  } else {
+    setStatus('Saved to your Downloads folder.', 'ok');
+    setHint('Press the brass for another take');
+  }
 }
 
 function presentMediaArtefacts() {
@@ -2046,12 +2138,13 @@ function prewarmWhisper() {
 }
 
 async function loadWhisper(onProgress) {
-  showTranscriptLoading('Loading model', 'First time only · ≈ 145 MB · cached after this');
-  // Xenova/whisper-base.en — best accuracy/size balance for English speech.
-  // For multilingual, swap to "Xenova/whisper-base" (no .en) at ~290 MB.
+  showTranscriptLoading('Loading model', `First time only · ${WHISPER_SIZE_LABEL} · cached after this`);
+  // base.en is the best accuracy/size balance for English on desktop;
+  // tiny.en is the mobile choice — see WHISPER_MODEL note above. For
+  // multilingual, swap to the non-`.en` variants at roughly 2× the size.
   const pipe = await pipeline(
     'automatic-speech-recognition',
-    'Xenova/whisper-base.en',
+    WHISPER_MODEL,
     {
       progress_callback: (p) => {
         if (p.status === 'progress' && p.file && p.file.endsWith('.onnx')) {
@@ -2152,7 +2245,11 @@ async function transcribeAudioBlob(audioBlob) {
 
   blobs.text = new Blob([transcriptText || '(no speech detected)'], { type: 'text/plain;charset=utf-8' });
   els.metaText.textContent = `${blobs.text.size} bytes · ${transcriptText.split(/\s+/).filter(Boolean).length} words`;
-  setTimeout(() => saveTarget('text'), 200);
+  // Same mobile gate as the media artefacts: don't auto-download on
+  // phones, the user can tap Save when they want it.
+  if (!IS_MOBILE) {
+    setTimeout(() => saveTarget('text'), 200);
+  }
 
   // Step 4 — re-render the analysis charts now that we have word timestamps,
   // so the Pace row gets populated. The other two charts redraw at the same
@@ -2254,7 +2351,7 @@ function escapeHtml(s) {
 // ── save buttons ───────────────────────────────────────────────────────────
 const EXT = { full: 'webm', audio: 'webm', video: 'webm', text: 'txt' };
 
-function saveTarget(target) {
+async function saveTarget(target) {
   if (!blobs || !blobs[target]) return;
   let ext = EXT[target];
   if (target !== 'text') {
@@ -2262,7 +2359,35 @@ function saveTarget(target) {
     if (t.includes('mp4')) ext = (target === 'audio') ? 'm4a' : 'mp4';
     else if (t.includes('ogg')) ext = 'ogg';
   }
-  downloadBlob(blobs[target], `${baseFilename}-${target}.${ext}`);
+  const filename = `${baseFilename}-${target}.${ext}`;
+
+  // Mobile: try the Web Share API with a File. iOS 15+ and recent Android
+  // Chrome support `navigator.share({files})` — opens the native share
+  // sheet (Save to Files, AirDrop, send to a chat app, etc.). This is the
+  // right primitive on phones; the `<a download>` fallback is unreliable
+  // for blob URLs there.
+  if (IS_MOBILE && typeof navigator.canShare === 'function') {
+    try {
+      const file = new File([blobs[target]], filename, { type: blobs[target].type });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: 'Speakeasy take',
+          text: filename,
+          files: [file],
+        });
+        flashSaved(target);
+        return;
+      }
+    } catch (e) {
+      // AbortError = user dismissed the share sheet — don't fall through
+      // to a download, that's not what they asked for.
+      if (e && e.name === 'AbortError') return;
+      // Other errors fall through to the classic download path below as a
+      // best-effort save.
+    }
+  }
+
+  downloadBlob(blobs[target], filename);
   flashSaved(target);
 }
 
