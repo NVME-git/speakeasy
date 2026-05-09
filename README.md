@@ -50,11 +50,19 @@ Files are named `speakeasy-<timestamp>-{full,audio,video,text}.{webm|m4a|mp4|txt
 
 Three rows, shared time axis, brass on coal:
 
-- **Pitch (Hz)** — fundamental frequency from autocorrelation, clamped to the voice band (50–400 Hz). Single-frame dropouts inside speech are smoothed back into the line.
+- **Pitch (Hz)** — fundamental frequency from *normalized* autocorrelation, clamped to the voice band (50–400 Hz). Single-frame dropouts inside speech are smoothed back into the line.
 - **Volume (dB)** — RMS amplitude of each 64 ms window converted to decibels full scale.
 - **Pace (wpm)** — Whisper's word timestamps, counted in a 3 s window centred on each sample point.
 
 Where you were silent — anywhere the audio falls below −45 dB — the line **breaks** and a faint band shades that span. Speaking is brass; silence is a gap.
+
+A small video of the take sits beside a big play button at the top of the analysis card. Press it and the recording plays back while a vertical brass playhead scrubs through all three charts in lock-step; a "now" readout shows the pitch, volume, and pace at the playhead. Click anywhere on a chart to seek the video to that moment.
+
+## Other comforts
+
+- **Access button at the top.** A brass "▸ Grant camera + microphone access" link sits just below the tagline so the permission prompt is reachable without scrolling to the recorder. After grant, it flips to "✓ Camera open · ready when you are".
+- **Always-on timer.** As soon as the camera opens, a `00:00` chip appears top-left of the stage in dimmed brass. When recording starts, it brightens and the dot pulses oxblood.
+- **Audience toggle.** A pill switch in the conductor column swaps the live preview for a stylised audience placeholder image (`assets/audience-placeholder.svg`). Helpful for speakers who freeze when staring at their own face. The recording itself is unaffected — the camera keeps capturing the speaker. Replace the SVG with your own image and the toggle picks it up automatically.
 
 ## Hosting
 

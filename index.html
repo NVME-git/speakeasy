@@ -132,6 +132,244 @@
       animation: fade-in 700ms 120ms var(--ease) both;
     }
 
+    /* ─── access strip (below tagline) ─────────────────────────────────── */
+    .access-strip {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      margin: -32px 0 56px;
+      animation: fade-in 700ms 160ms var(--ease) both;
+    }
+    .access-strip.granted .access-btn { display: none; }
+    .access-strip.granted .access-confirmed { display: inline; }
+    .access-confirmed {
+      display: none;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--brass);
+    }
+    .access-confirmed::before {
+      content: "✓";
+      margin-right: 8px;
+      color: var(--brass-hot);
+    }
+
+    /* ─── audience overlay (covers the live preview when toggled on) ───── */
+    .audience-overlay {
+      position: absolute; inset: 0;
+      background: var(--velvet) center / cover no-repeat;
+      background-image: url("assets/audience-placeholder.svg");
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 400ms var(--ease);
+    }
+    .stage.audience .audience-overlay { opacity: 1; }
+    /* Soft brass vignette pulled across the audience image so the placeholder
+       feels framed and the bottom remains readable for the meter overlay. */
+    .audience-overlay::after {
+      content: "";
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 90% 70% at 50% 40%, transparent 30%, rgba(10,8,5,0.6) 100%),
+        linear-gradient(to top, rgba(10,8,5,0.55), transparent 30%);
+    }
+
+    /* ─── audience toggle (in the conductor column) ────────────────────── */
+    .audience-toggle {
+      display: inline-flex;
+      align-items: center; gap: 12px;
+      background: transparent;
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      padding: 6px 14px 6px 6px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 220ms var(--ease), background 220ms var(--ease);
+    }
+    .audience-toggle:hover { border-color: var(--brass-dim); background: rgba(201,168,120,0.04); }
+    .audience-toggle:focus-visible {
+      outline: none;
+      border-color: var(--brass);
+      box-shadow: 0 0 0 3px rgba(201, 168, 120, 0.18);
+    }
+    .audience-toggle-track {
+      width: 36px; height: 20px;
+      border-radius: 999px;
+      background: var(--rule);
+      position: relative;
+      transition: background 240ms var(--ease);
+    }
+    .audience-toggle-knob {
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--ash);
+      transition: transform 280ms var(--ease-spring), background 240ms var(--ease);
+    }
+    .audience-toggle[aria-pressed="true"] .audience-toggle-track { background: rgba(201, 168, 120, 0.25); }
+    .audience-toggle[aria-pressed="true"] .audience-toggle-knob {
+      transform: translateX(16px);
+      background: var(--brass);
+    }
+    .audience-toggle-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ash);
+      transition: color 240ms var(--ease);
+    }
+    .audience-toggle[aria-pressed="true"] .audience-toggle-label { color: var(--brass); }
+
+    /* ─── analysis player (at top of analysis card) ────────────────────── */
+    .analysis-player {
+      display: grid;
+      grid-template-columns: 280px auto 1fr;
+      gap: 28px;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--rule);
+    }
+    @media (max-width: 720px) {
+      .analysis-player {
+        grid-template-columns: 1fr;
+        gap: 18px;
+      }
+    }
+
+    .analysis-video {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: var(--ink);
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      display: block;
+    }
+
+    .analysis-play-btn {
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      background: var(--smoke);
+      border: 1px solid var(--brass-dim);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 260ms var(--ease), border-color 260ms var(--ease),
+                  background 260ms var(--ease);
+      padding: 0;
+      position: relative;
+      isolation: isolate;
+      flex-shrink: 0;
+    }
+    .analysis-play-btn:hover {
+      transform: scale(1.05);
+      border-color: var(--brass);
+      background: var(--velvet);
+      box-shadow: 0 0 32px rgba(201, 168, 120, 0.18);
+    }
+    .analysis-play-btn:focus-visible {
+      outline: none;
+      border-color: var(--brass);
+      box-shadow: 0 0 0 4px rgba(201, 168, 120, 0.18);
+    }
+    .analysis-play-btn:active { transform: scale(0.97); }
+    .analysis-play-btn svg {
+      width: 32px; height: 32px;
+      fill: var(--brass);
+      transition: fill 200ms var(--ease);
+      pointer-events: none;
+    }
+    .analysis-play-btn:hover svg { fill: var(--brass-hot); }
+    .analysis-play-btn .icon-pause { display: none; }
+    .analysis-play-btn[data-state="playing"] .icon-play  { display: none; }
+    .analysis-play-btn[data-state="playing"] .icon-pause { display: block; }
+    /* Soft pulsing ring while playing — echoes the recorder's armed state. */
+    .analysis-play-btn[data-state="playing"]::before {
+      content: "";
+      position: absolute; inset: -1px;
+      border-radius: 50%;
+      border: 1px solid var(--brass);
+      animation: ring-pulse 2.4s var(--ease) infinite;
+      opacity: 0.5;
+    }
+
+    .analysis-now {
+      display: flex; flex-direction: column;
+      gap: 10px;
+      padding-left: 20px;
+      border-left: 1px solid var(--rule);
+    }
+    .analysis-now-time {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ash);
+    }
+    .analysis-now-time .now-time-value {
+      color: var(--paper);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+    .analysis-now-stats {
+      display: grid;
+      grid-template-columns: repeat(3, auto);
+      gap: 4px 28px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+    @media (max-width: 880px) {
+      .analysis-now-stats { grid-template-columns: repeat(2, auto); }
+    }
+    .analysis-now-stats .stat-label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ash);
+      margin-bottom: 2px;
+    }
+    .analysis-now-stats .stat-value {
+      display: block;
+      font-size: 16px;
+      color: var(--brass-hot);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      min-width: 5ch;
+    }
+    .analysis-now-stats .stat-value.empty { color: var(--whisper); }
+
+    /* ─── playhead lines (inside each analysis canvas wrap) ────────────── */
+    .playhead {
+      position: absolute; top: 0; bottom: 0;
+      width: 1.5px;
+      background: var(--brass-hot);
+      box-shadow: 0 0 6px rgba(227, 192, 142, 0.55);
+      pointer-events: none;
+      left: 0;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 280ms var(--ease), left 60ms linear;
+      z-index: 2;
+    }
+    .playhead::before {
+      content: "";
+      position: absolute; top: -3px; left: 50%;
+      transform: translateX(-50%);
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--brass-hot);
+      box-shadow: 0 0 4px rgba(227, 192, 142, 0.7);
+    }
+    .playhead.active { opacity: 1; }
+    /* Make the canvas wrap clickable to seek the player to that time. */
+    .analysis-canvas-wrap.seekable { cursor: crosshair; }
+    .analysis-canvas-wrap.seekable:hover .playhead { opacity: 0.55; }
+
     /* ─── collapsible section shell (used for both demo videos) ────────── */
     .collapsible {
       margin: 16px 0;
@@ -361,7 +599,9 @@
       line-height: 1.55;
     }
 
-    /* Timecode chip — top-left of the stage. Big, tabular, prominent. */
+    /* Timecode chip — top-left of the stage. Always present once the
+       camera is open; dimmed when idle, full-bright + pulsing when
+       recording so you can read elapsed time at a glance. */
     .timecode {
       position: absolute; top: 18px; left: 18px;
       display: inline-flex; align-items: center; gap: 10px;
@@ -369,22 +609,32 @@
       background: rgba(10, 8, 5, 0.7);
       backdrop-filter: blur(8px) saturate(1.1);
       -webkit-backdrop-filter: blur(8px) saturate(1.1);
-      border: 1px solid rgba(201, 168, 120, 0.18);
+      border: 1px solid rgba(201, 168, 120, 0.14);
       border-radius: 2px;
       font-family: var(--mono);
       font-size: 13px; font-weight: 600;
       letter-spacing: 0.05em;
-      color: var(--paper);
+      color: var(--paper-soft);
       opacity: 0;
       transform: translateY(-6px);
-      transition: opacity 400ms var(--ease), transform 400ms var(--ease);
+      transition: opacity 400ms var(--ease), transform 400ms var(--ease),
+                  border-color 300ms var(--ease), color 300ms var(--ease);
     }
-    .timecode.visible { opacity: 1; transform: translateY(0); }
+    .stage.live .timecode { opacity: 0.55; transform: translateY(0); }
+    .timecode.recording {
+      opacity: 1;
+      color: var(--paper);
+      border-color: rgba(197, 74, 74, 0.45);
+    }
     .timecode-dot {
       width: 9px; height: 9px;
       border-radius: 50%;
+      background: var(--whisper);
+      box-shadow: 0 0 0 0 rgba(197, 74, 74, 0);
+      transition: background 200ms var(--ease);
+    }
+    .timecode.recording .timecode-dot {
       background: var(--oxblood-hot);
-      box-shadow: 0 0 0 0 rgba(197, 74, 74, 0.5);
       animation: heartbeat 1.4s ease-in-out infinite;
     }
     @keyframes heartbeat {
@@ -996,6 +1246,11 @@
 
   <p class="tagline">A note in your own voice — captured, divided, transcribed.</p>
 
+  <div class="access-strip" id="access-strip">
+    <button class="text-btn access-btn" id="btn-access" type="button">▸ Grant camera + microphone access</button>
+    <span class="access-confirmed">Camera open · ready when you are</span>
+  </div>
+
   <section class="collapsible" data-collapse-key="motivation" aria-labelledby="motivation-heading">
     <button class="collapse-bar" type="button" aria-controls="motivation-body" data-collapse-toggle>
       <span class="collapse-bar-label" id="motivation-heading">The communication mirror</span>
@@ -1046,6 +1301,11 @@
     <div class="stage" id="stage">
       <video id="preview" autoplay muted playsinline></video>
 
+      <!-- Toggled in via the audience-toggle button: hides the speaker
+           preview behind a placeholder image of an audience while the
+           camera continues to record normally. -->
+      <div class="audience-overlay" id="audience-overlay" aria-hidden="true"></div>
+
       <div class="stage-empty" id="stage-empty">
         <div class="stage-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v4M8 23h8"/></svg>
@@ -1075,7 +1335,13 @@
       <div class="conductor-meta">
         <p class="conductor-status" id="status">Awaiting consent.</p>
         <p class="conductor-hint" id="hint">Camera · microphone · this tab only</p>
-        <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start;">
+          <button class="audience-toggle hidden" id="btn-audience" type="button" aria-pressed="false" aria-label="Replace the live preview with an audience image">
+            <span class="audience-toggle-track" aria-hidden="true">
+              <span class="audience-toggle-knob"></span>
+            </span>
+            <span class="audience-toggle-label">Show audience</span>
+          </button>
           <button class="text-btn hidden" id="btn-reset">▸ Record another</button>
         </div>
       </div>
@@ -1234,14 +1500,49 @@
       </div>
 
       <div id="analysis-charts" class="hidden">
+
+        <!-- Player block: full-take video + a big play button + a "now"
+             readout that updates as the video plays. The brass playhead
+             lines on each chart move in sync with the video's time. -->
+        <div class="analysis-player">
+          <video class="analysis-video" id="analysis-video" playsinline preload="metadata"></video>
+          <button class="analysis-play-btn" id="analysis-play-btn" type="button" data-state="paused" aria-label="Play the take">
+            <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true">
+              <polygon points="6,4 6,20 20,12"/>
+            </svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="6" y="4" width="4" height="16" rx="0.5"/>
+              <rect x="14" y="4" width="4" height="16" rx="0.5"/>
+            </svg>
+          </button>
+          <div class="analysis-now">
+            <div class="analysis-now-time">at <span class="now-time-value" id="now-time">00:00</span></div>
+            <div class="analysis-now-stats">
+              <div>
+                <span class="stat-label">Pitch</span>
+                <span class="stat-value empty" id="now-pitch">—</span>
+              </div>
+              <div>
+                <span class="stat-label">Volume</span>
+                <span class="stat-value empty" id="now-volume">—</span>
+              </div>
+              <div>
+                <span class="stat-label">Pace</span>
+                <span class="stat-value empty" id="now-pace">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="analysis-row">
           <div class="analysis-meta">
             <span class="analysis-row-title">Pitch</span>
             <span class="analysis-row-units">Hertz</span>
             <span class="analysis-row-stat" id="stat-pitch">—</span>
           </div>
-          <div class="analysis-canvas-wrap">
+          <div class="analysis-canvas-wrap" data-canvas="pitch">
             <canvas class="analysis-canvas" id="canvas-pitch"></canvas>
+            <div class="playhead" data-playhead></div>
           </div>
         </div>
 
@@ -1251,8 +1552,9 @@
             <span class="analysis-row-units">Decibels</span>
             <span class="analysis-row-stat" id="stat-volume">—</span>
           </div>
-          <div class="analysis-canvas-wrap">
+          <div class="analysis-canvas-wrap" data-canvas="volume">
             <canvas class="analysis-canvas" id="canvas-volume"></canvas>
+            <div class="playhead" data-playhead></div>
           </div>
         </div>
 
@@ -1262,8 +1564,9 @@
             <span class="analysis-row-units">Words / min</span>
             <span class="analysis-row-stat" id="stat-pace">—</span>
           </div>
-          <div class="analysis-canvas-wrap">
+          <div class="analysis-canvas-wrap" data-canvas="pace">
             <canvas class="analysis-canvas" id="canvas-pace"></canvas>
+            <div class="playhead" data-playhead></div>
           </div>
         </div>
 
@@ -1344,10 +1647,25 @@ const els = {
   statVolume:      $('stat-volume'),
   statPace:        $('stat-pace'),
   analysisAxis:    $('analysis-axis'),
+  // New refs for the access strip, audience toggle, and analysis player.
+  accessStrip:     $('access-strip'),
+  btnAccess:       $('btn-access'),
+  audienceOverlay: $('audience-overlay'),
+  btnAudience:     $('btn-audience'),
+  analysisVideo:   $('analysis-video'),
+  analysisPlayBtn: $('analysis-play-btn'),
+  nowTime:         $('now-time'),
+  nowPitch:        $('now-pitch'),
+  nowVolume:       $('now-volume'),
+  nowPace:         $('now-pace'),
 };
 
-// Last analysis result kept for redraw on resize.
+// Last analysis result kept for redraw on resize and for the playhead/now-
+// readout sync while the analysis-player video plays.
 let lastAnalysis = null;
+// Single object URL for the analysis player video — created once after each
+// recording, revoked on reset so blobs don't leak.
+let analysisVideoUrl = null;
 
 // ── state ───────────────────────────────────────────────────────────────────
 let stream = null;
@@ -1524,9 +1842,16 @@ async function initCamera() {
   }
   els.preview.srcObject = stream;
   els.stage.classList.add('live');
+  // Show 00:00 in the timer chip the moment the camera opens, so the user
+  // knows where to look once they hit record.
+  els.timecodeText.textContent = '00:00';
   setRecState('armed');
   setStatus('The room is open.', 'ok');
   setHint('Press the brass when you\'re ready');
+  // Mark the top-of-page access button as fulfilled.
+  els.accessStrip.classList.add('granted');
+  // Reveal the audience toggle now that there's actually something to swap.
+  els.btnAudience.classList.remove('hidden');
   // Pre-warm the Whisper model in the background so the first transcription
   // doesn't make the user wait for a 145 MB download AND a recording.
   prewarmWhisper();
@@ -1563,7 +1888,10 @@ function startRecording() {
   startMeter();
 
   recStartedAt = Date.now();
-  els.timecode.classList.add('visible');
+  // The chip is already on-screen from initCamera (dimmed). Switching to
+  // .recording brightens it, swaps the dot to oxblood, and starts the
+  // pulse animation. We update the text every 250 ms.
+  els.timecode.classList.add('recording');
   els.timecodeText.textContent = '00:00';
   timerHandle = setInterval(() => {
     els.timecodeText.textContent = fmtClock(Date.now() - recStartedAt);
@@ -1581,7 +1909,10 @@ async function stopRecording() {
   setHint('Closing the recorders');
   clearInterval(timerHandle);
   stopMeter();
-  els.timecode.classList.remove('visible');
+  // Drop the recording state — the chip stays visible (dimmed) for the
+  // next take. Reset the digits to 00:00 so the next recording starts clean.
+  els.timecode.classList.remove('recording');
+  els.timecodeText.textContent = '00:00';
 
   const stops = ['full', 'audio', 'video'].map((key) => new Promise((resolve) => {
     recorders[key].addEventListener('stop', resolve, { once: true });
@@ -1664,6 +1995,13 @@ function resetForAnother() {
   els.analysis.classList.remove('revealed');
   els.analysisLoad.classList.add('hidden');
   els.analysisCharts.classList.add('hidden');
+  // Tear down the analysis player so the next recording wires up clean.
+  try { els.analysisVideo.pause(); } catch (_) {}
+  els.analysisVideo.removeAttribute('src');
+  els.analysisVideo.load();
+  if (analysisVideoUrl) { URL.revokeObjectURL(analysisVideoUrl); analysisVideoUrl = null; }
+  els.analysisPlayBtn.dataset.state = 'paused';
+  resetPlayhead();
   lastAnalysis = null;
   for (const flash of document.querySelectorAll('.saved-flash')) flash.classList.remove('visible');
   els.btnReset.classList.add('hidden');
@@ -1934,39 +2272,66 @@ function rmsDb(buf) {
 }
 
 /**
- * Cheap autocorrelation pitch detector tuned for speech. Searches integer
- * lags in [40, 320] (= 50–400 Hz at 16 kHz) and returns the lag with the
- * highest normalized self-similarity. Returns null when the frame doesn't
- * have a strong periodic signal — voiceless consonants, silence, noise.
+ * Pitch detector via *normalized* autocorrelation, tuned for speech.
+ *
+ * The earlier version used un-normalized autocorrelation and a threshold
+ * of 0.4 — but that threshold is amplitude-dependent: a quiet voice can
+ * be perfectly periodic and still produce peaks below 0.4, which gave
+ * the appearance that pitch detection wasn't working on most frames.
+ *
+ * This version subtracts the DC offset, then for each lag computes
+ *
+ *     r(τ) = Σ (x[i] − μ)(x[i+τ] − μ)   /   √( Σ(x[i]−μ)² · Σ(x[i+τ]−μ)² )
+ *
+ * which normalizes into [−1, 1] regardless of input amplitude. A
+ * correlation threshold of 0.3 is a safe minimum for voiced speech.
  *
  * Two safeguards against octave errors:
- *   - require correlation > 0.4 (empirical threshold)
- *   - prefer the lowest lag whose correlation is within 95 % of the peak
+ *   - require r(τ) ≥ 0.3 at the peak
+ *   - prefer the lowest lag whose r(τ) is within 95 % of the peak
  *     (favours the true fundamental over its first harmonic)
  */
 function detectPitch(buf, sampleRate) {
   const SIZE = buf.length;
-  // Quick energy gate so we don't waste cycles on silence frames.
-  let energy = 0;
-  for (let i = 0; i < SIZE; i++) energy += buf[i] * buf[i];
-  if (Math.sqrt(energy / SIZE) < 0.005) return null;
 
-  // Autocorrelation across the voice-relevant lag range.
+  // 1) DC removal — subtract the frame's mean. Crucial for normalization,
+  //    and also makes microphone bias / room-tone irrelevant.
+  let mean = 0;
+  for (let i = 0; i < SIZE; i++) mean += buf[i];
+  mean /= SIZE;
+
+  // 2) Zero-lag energy after DC removal — used as the silence gate.
+  let e0 = 0;
+  for (let i = 0; i < SIZE; i++) {
+    const v = buf[i] - mean;
+    e0 += v * v;
+  }
+  if (e0 / SIZE < 1e-5) return null;
+
+  // 3) Normalized autocorrelation across the voice-relevant lag range.
   const corrs = new Float32Array(ANALYSIS.MAX_LAG + 1);
   let peak = 0;
   let peakLag = -1;
   for (let lag = ANALYSIS.MIN_LAG; lag <= ANALYSIS.MAX_LAG; lag++) {
-    let c = 0;
+    let dot = 0, e1 = 0, e2 = 0;
     const N = SIZE - lag;
-    for (let i = 0; i < N; i++) c += buf[i] * buf[i + lag];
-    c /= N;
-    corrs[lag] = c;
-    if (c > peak) { peak = c; peakLag = lag; }
+    for (let i = 0; i < N; i++) {
+      const a = buf[i] - mean;
+      const b = buf[i + lag] - mean;
+      dot += a * b;
+      e1  += a * a;
+      e2  += b * b;
+    }
+    const norm = Math.sqrt(e1 * e2);
+    const r = norm > 1e-12 ? dot / norm : 0;
+    corrs[lag] = r;
+    if (r > peak) { peak = r; peakLag = lag; }
   }
-  if (peak < 0.4 || peakLag < 0) return null;
+
+  if (peak < 0.3 || peakLag < 0) return null;
 
   // Prefer the lowest lag whose correlation is within 95 % of the peak —
-  // helps avoid the classic "octave higher" failure mode.
+  // avoids the classic "octave too high" failure mode.
   const threshold = peak * 0.95;
   let bestLag = peakLag;
   for (let lag = ANALYSIS.MIN_LAG; lag <= peakLag; lag++) {
@@ -2063,6 +2428,18 @@ function presentAnalysis(data, duration) {
   lastAnalysis = { data, duration };
   els.analysisLoad.classList.add('hidden');
   els.analysisCharts.classList.remove('hidden');
+
+  // Wire the analysis player up to the full take. Reuse a single object
+  // URL across redraws so seeking doesn't reload the video; revoke when
+  // we reset for the next recording.
+  if (blobs && blobs.full) {
+    if (!analysisVideoUrl) analysisVideoUrl = URL.createObjectURL(blobs.full);
+    if (els.analysisVideo.src !== analysisVideoUrl) {
+      els.analysisVideo.src = analysisVideoUrl;
+    }
+  }
+  // Reset playhead + now-readout to t=0.
+  resetPlayhead();
 
   // Pitch range — clamp to a sensible voice range so a single octave
   // outlier doesn't squash the rest of the line.
@@ -2214,6 +2591,108 @@ window.addEventListener('resize', () => {
   resizeRaf = requestAnimationFrame(() => presentAnalysis(lastAnalysis.data, lastAnalysis.duration));
 });
 
+// ── analysis playback (video + playhead sync) ──────────────────────────────
+// The big play button on the analysis card plays the recorded take while a
+// vertical brass line scrubs through the three charts in lock-step. The
+// "now" readout shows the pitch / volume / pace value at the playhead.
+
+function valueAt(series, t) {
+  if (!series || series.length === 0) return null;
+  // Linear scan — series is short (a few hundred frames at most).
+  for (let i = 0; i < series.length; i++) {
+    if (series[i].t >= t) {
+      // Use this point unless we just passed t — then prefer the previous
+      // sample so the readout reflects the value the user is looking at.
+      const idx = i > 0 ? i - 1 : 0;
+      const p = series[idx];
+      return (p.silent || p.value == null) ? null : p.value;
+    }
+  }
+  // Past the last sample.
+  const last = series[series.length - 1];
+  return (last.silent || last.value == null) ? null : last.value;
+}
+
+function setStat(el, value, fmt) {
+  if (value == null || Number.isNaN(value)) {
+    el.textContent = '—';
+    el.classList.add('empty');
+  } else {
+    el.textContent = fmt(value);
+    el.classList.remove('empty');
+  }
+}
+
+function syncPlayheadFromVideo() {
+  if (!lastAnalysis) return;
+  const v = els.analysisVideo;
+  // Clamp t to [0, analysis duration] — video.duration can over-report
+  // when the webm container hasn't fully indexed, and we want the playhead
+  // to land within the chart bounds.
+  const duration = lastAnalysis.duration;
+  const t = Math.max(0, Math.min(duration, v.currentTime));
+  const pct = duration > 0 ? (t / duration) * 100 : 0;
+  document.querySelectorAll('[data-playhead]').forEach((p) => {
+    p.style.left = pct + '%';
+  });
+  // Update the "now" readout.
+  els.nowTime.textContent = fmtClock(t * 1000);
+  setStat(els.nowPitch,  valueAt(lastAnalysis.data.pitch, t),  (v) => `${Math.round(v)} Hz`);
+  setStat(els.nowVolume, valueAt(lastAnalysis.data.volume, t), (v) => `${v.toFixed(1)} dB`);
+  setStat(els.nowPace,   valueAt(lastAnalysis.data.pace, t),   (v) => `${Math.round(v)} wpm`);
+}
+
+function resetPlayhead() {
+  document.querySelectorAll('[data-playhead]').forEach((p) => {
+    p.classList.remove('active');
+    p.style.left = '0%';
+  });
+  els.nowTime.textContent = '00:00';
+  for (const el of [els.nowPitch, els.nowVolume, els.nowPace]) {
+    el.textContent = '—';
+    el.classList.add('empty');
+  }
+}
+
+els.analysisPlayBtn.addEventListener('click', () => {
+  const v = els.analysisVideo;
+  if (!v.src) return;
+  if (v.paused || v.ended) v.play().catch(() => {});
+  else v.pause();
+});
+
+els.analysisVideo.addEventListener('play', () => {
+  els.analysisPlayBtn.dataset.state = 'playing';
+  els.analysisPlayBtn.setAttribute('aria-label', 'Pause the take');
+  document.querySelectorAll('[data-playhead]').forEach((p) => p.classList.add('active'));
+});
+els.analysisVideo.addEventListener('pause', () => {
+  els.analysisPlayBtn.dataset.state = 'paused';
+  els.analysisPlayBtn.setAttribute('aria-label', 'Play the take');
+});
+els.analysisVideo.addEventListener('ended', () => {
+  els.analysisPlayBtn.dataset.state = 'paused';
+  els.analysisPlayBtn.setAttribute('aria-label', 'Play the take');
+});
+els.analysisVideo.addEventListener('timeupdate', syncPlayheadFromVideo);
+els.analysisVideo.addEventListener('seeked', syncPlayheadFromVideo);
+
+// Click-to-seek on any chart. Maps the click x-position to a time and
+// jumps the video there — turns the analysis card into an interactive
+// scrubber across all three series at once.
+document.querySelectorAll('.analysis-canvas-wrap').forEach((wrap) => {
+  wrap.classList.add('seekable');
+  wrap.addEventListener('click', (ev) => {
+    if (!lastAnalysis) return;
+    const rect = wrap.getBoundingClientRect();
+    const pct = (ev.clientX - rect.left) / rect.width;
+    const t = Math.max(0, Math.min(lastAnalysis.duration, pct * lastAnalysis.duration));
+    if (els.analysisVideo.src) {
+      els.analysisVideo.currentTime = t;
+    }
+  });
+});
+
 // ── wire-up ─────────────────────────────────────────────────────────────────
 els.recBtn.addEventListener('click', () => {
   const state = els.recBtn.dataset.state;
@@ -2223,6 +2702,31 @@ els.recBtn.addEventListener('click', () => {
 });
 
 els.btnReset.addEventListener('click', resetForAnother);
+
+// Top-of-page access button — shortcut for "request camera + microphone"
+// without making the user discover the big record button first. After the
+// permission grant, initCamera marks the strip as .granted and CSS hides
+// the button + reveals the "✓ Camera open" line.
+els.btnAccess.addEventListener('click', initCamera);
+
+// Audience toggle — replaces the live preview with the placeholder image
+// while leaving the underlying MediaStream untouched (recording is
+// unaffected). State persists in localStorage so the user's preference
+// carries between sessions.
+const AUDIENCE_KEY = 'speakeasy.audience';
+function setAudienceMode(on) {
+  els.btnAudience.setAttribute('aria-pressed', on ? 'true' : 'false');
+  els.stage.classList.toggle('audience', on);
+}
+try {
+  if (localStorage.getItem(AUDIENCE_KEY) === '1') setAudienceMode(true);
+} catch (_) {}
+els.btnAudience.addEventListener('click', () => {
+  const isOn = els.btnAudience.getAttribute('aria-pressed') === 'true';
+  const next = !isOn;
+  setAudienceMode(next);
+  try { localStorage.setItem(AUDIENCE_KEY, next ? '1' : '0'); } catch (_) {}
+});
 
 document.querySelectorAll('.text-btn[data-target]').forEach((btn) => {
   btn.addEventListener('click', () => saveTarget(btn.dataset.target));
