@@ -1,0 +1,25 @@
+# Speakeasy is a single-file web app — there's nothing to build.
+# This file exists to keep the repo clean if anyone runs a static server
+# from inside it or experiments with bundlers later.
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Editor noise
+.vscode/
+.idea/
+*.swp
+*~
+
+# Recordings the user happens to drop into the project folder
+speakeasy-*.webm
+speakeasy-*.mp4
+speakeasy-*.m4a
+speakeasy-*.txt
+
+# Just in case someone reaches for npm
+node_modules/
+package-lock.json
+.rocky
+.rocky-project

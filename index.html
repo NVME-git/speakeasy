@@ -1,0 +1,1960 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Speakeasy — A Recording Instrument</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..700,30..100&family=JetBrains+Mono:wght@400;600&display=swap">
+
+  <style>
+    :root {
+      /* Editorial Noir palette — coal, parchment, brass, oxblood. The single
+         hot accent is brass (champagne gold); recording state uses oxblood. */
+      --ink:        #0a0805;
+      --velvet:     #14100c;
+      --smoke:      #1d1814;
+      --rule:       #2c2620;
+      --rule-soft:  #1f1a15;
+      --paper:      #f5e9d0;
+      --paper-soft: #c5b89d;
+      --ash:        #8a7c66;
+      --whisper:    #5c5247;
+      --brass:      #c9a878;
+      --brass-hot:  #e3c08e;
+      --brass-dim:  #8e7654;
+      --oxblood:    #9a3434;
+      --oxblood-hot:#c54a4a;
+
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+      --display: "Fraunces", "Cormorant Garamond", Georgia, serif;
+      --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    *::selection { background: var(--brass); color: var(--ink); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--ink); color: var(--paper);
+      font-family: var(--display);
+      font-variation-settings: "opsz" 14, "SOFT" 50;
+      font-weight: 400;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* Subtle film-grain overlay — gives the page a paper-like texture
+       without weighing it down. SVG noise filter, GPU-rastered, ~18 KB inline. */
+    body::before {
+      content: "";
+      position: fixed; inset: 0; pointer-events: none; z-index: 1000;
+      opacity: 0.035; mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    }
+
+    /* Warm radial vignette pulled from above the masthead — makes the page
+       feel lit from the top, like a single bulb in a backroom. */
+    body::after {
+      content: "";
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background: radial-gradient(ellipse 1200px 600px at 50% -200px,
+        rgba(201, 168, 120, 0.10) 0%,
+        rgba(201, 168, 120, 0.04) 30%,
+        transparent 60%);
+    }
+
+    main {
+      position: relative; z-index: 1;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 56px 40px 100px;
+    }
+
+    /* ─── masthead ──────────────────────────────────────────────────────── */
+    .masthead {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--rule);
+      animation: fade-in 700ms var(--ease) both;
+    }
+    .wordmark {
+      font-family: var(--display);
+      font-variation-settings: "opsz" 144, "SOFT" 80, "wght" 350;
+      font-size: clamp(38px, 6vw, 64px);
+      line-height: 0.9;
+      letter-spacing: -0.025em;
+      margin: 0;
+      color: var(--paper);
+    }
+    .wordmark em {
+      font-style: italic;
+      font-variation-settings: "opsz" 144, "SOFT" 100, "wght" 300;
+      color: var(--brass);
+    }
+    .masthead-meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ash);
+      margin: 0;
+      text-align: right;
+      line-height: 1.6;
+    }
+    .masthead-meta span { color: var(--brass-dim); }
+
+    .tagline {
+      font-family: var(--display);
+      font-variation-settings: "opsz" 24, "SOFT" 100, "wght" 300;
+      font-style: italic;
+      font-size: clamp(18px, 2.2vw, 22px);
+      color: var(--paper-soft);
+      margin: 28px 0 56px;
+      max-width: 640px;
+      animation: fade-in 700ms 120ms var(--ease) both;
+    }
+
+    /* ─── hero recorder ─────────────────────────────────────────────────── */
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 40px;
+      align-items: stretch;
+      animation: fade-in 700ms 240ms var(--ease) both;
+    }
+    @media (max-width: 880px) {
+      .hero { grid-template-columns: 1fr; }
+    }
+
+    .stage {
+      position: relative;
+      aspect-ratio: 16/9;
+      background: var(--velvet);
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      overflow: hidden;
+      isolation: isolate;
+      box-shadow:
+        inset 0 0 0 1px rgba(245, 233, 208, 0.02),
+        0 24px 48px -16px rgba(0, 0, 0, 0.6);
+    }
+    .stage video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transform: scale(1.001);  /* hairline crop to hide blob bleed */
+    }
+    .stage-empty {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 18px;
+      padding: 40px;
+      text-align: center;
+      color: var(--whisper);
+      transition: opacity 400ms var(--ease);
+    }
+    .stage.live .stage-empty { opacity: 0; pointer-events: none; }
+
+    .stage-icon {
+      width: 56px; height: 56px;
+      border: 1px solid var(--rule);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--brass-dim);
+    }
+    .stage-icon svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 1.4; fill: none; }
+    .stage-empty p {
+      font-family: var(--display);
+      font-variation-settings: "opsz" 18, "SOFT" 70;
+      font-style: italic;
+      color: var(--ash);
+      margin: 0;
+      max-width: 320px;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    /* Timecode chip — top-left of the stage. Big, tabular, prominent. */
+    .timecode {
+      position: absolute; top: 18px; left: 18px;
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 8px 14px 8px 12px;
+      background: rgba(10, 8, 5, 0.7);
+      backdrop-filter: blur(8px) saturate(1.1);
+      -webkit-backdrop-filter: blur(8px) saturate(1.1);
+      border: 1px solid rgba(201, 168, 120, 0.18);
+      border-radius: 2px;
+      font-family: var(--mono);
+      font-size: 13px; font-weight: 600;
+      letter-spacing: 0.05em;
+      color: var(--paper);
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 400ms var(--ease), transform 400ms var(--ease);
+    }
+    .timecode.visible { opacity: 1; transform: translateY(0); }
+    .timecode-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--oxblood-hot);
+      box-shadow: 0 0 0 0 rgba(197, 74, 74, 0.5);
+      animation: heartbeat 1.4s ease-in-out infinite;
+    }
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(197, 74, 74, 0.5); }
+      50%      { transform: scale(1.15); box-shadow: 0 0 0 6px rgba(197, 74, 74, 0); }
+    }
+
+    /* Audio level meter — slim brass ticks across the bottom of the stage,
+       drawn to a canvas via AnalyserNode. Hidden until recording starts. */
+    .meter {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      height: 64px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 600ms var(--ease);
+      background: linear-gradient(to top, rgba(10, 8, 5, 0.7), transparent);
+    }
+    .meter.visible { opacity: 1; }
+    .meter canvas { width: 100%; height: 100%; display: block; }
+
+    /* Conductor column — record button + status, sits to the right of stage. */
+    .conductor {
+      display: flex; flex-direction: column;
+      gap: 32px;
+      padding: 8px 0;
+    }
+    @media (max-width: 880px) {
+      .conductor { padding: 0; align-items: center; }
+    }
+
+    .rec-btn {
+      position: relative;
+      width: 168px; height: 168px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: inherit;
+      transition: transform 300ms var(--ease);
+      isolation: isolate;
+    }
+    .rec-btn:disabled { cursor: not-allowed; opacity: 0.4; }
+    .rec-btn:hover:not(:disabled) { transform: scale(1.04); }
+    .rec-btn:active:not(:disabled) { transform: scale(0.97); }
+    .rec-btn:focus-visible { outline: none; }
+    .rec-btn:focus-visible::after {
+      content: ""; position: absolute; inset: -10px;
+      border: 1px solid var(--brass);
+      border-radius: 50%;
+      animation: ring-pulse 1.6s var(--ease) infinite;
+    }
+    .rec-ring {
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      border: 1px solid var(--rule);
+      transition: border-color 400ms var(--ease);
+    }
+    .rec-btn:hover:not(:disabled) .rec-ring { border-color: var(--brass-dim); }
+
+    /* Concentric rings that pulse outward when armed (camera ready, not yet
+       recording). Pure CSS — no JS needed for the animation. */
+    .rec-btn[data-state="armed"] .rec-ring::before,
+    .rec-btn[data-state="armed"] .rec-ring::after {
+      content: ""; position: absolute; inset: -1px;
+      border: 1px solid var(--brass);
+      border-radius: 50%;
+      opacity: 0;
+      animation: ring-pulse 2.4s var(--ease) infinite;
+    }
+    .rec-btn[data-state="armed"] .rec-ring::after { animation-delay: 1.2s; }
+    @keyframes ring-pulse {
+      0%   { transform: scale(1);   opacity: 0.6; }
+      80%  { transform: scale(1.5); opacity: 0; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+
+    .rec-core {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: var(--oxblood);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 -2px 8px rgba(0, 0, 0, 0.4),
+        0 0 24px rgba(154, 52, 52, 0.25);
+      transition: all 400ms var(--ease), border-radius 600ms var(--ease);
+    }
+    .rec-btn[data-state="armed"]:hover .rec-core {
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -2px 8px rgba(0, 0, 0, 0.4),
+        0 0 32px rgba(197, 74, 74, 0.45);
+    }
+    .rec-btn[data-state="recording"] .rec-core {
+      width: 36px; height: 36px;
+      border-radius: 6px;
+      background: var(--oxblood-hot);
+      box-shadow: 0 0 32px rgba(197, 74, 74, 0.6);
+      animation: rec-breathe 2.2s ease-in-out infinite;
+    }
+    .rec-btn[data-state="recording"] .rec-ring { border-color: var(--oxblood); }
+    @keyframes rec-breathe {
+      0%, 100% { box-shadow: 0 0 28px rgba(197, 74, 74, 0.5); }
+      50%      { box-shadow: 0 0 44px rgba(197, 74, 74, 0.8); }
+    }
+
+    .rec-btn[data-state="idle"] .rec-core {
+      background: var(--smoke);
+      box-shadow:
+        inset 0 1px 0 rgba(245, 233, 208, 0.04),
+        inset 0 -1px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .rec-btn[data-state="finalising"] .rec-core,
+    .rec-btn[data-state="finalising"] .rec-ring { display: none; }
+    .rec-btn[data-state="finalising"]::before {
+      content: "";
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      border: 1px solid var(--rule);
+      border-top-color: var(--brass);
+      animation: spin 1.1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .rec-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--ash);
+      margin-top: 14px;
+      text-align: center;
+      transition: color 300ms var(--ease);
+      min-height: 1em;
+    }
+    .rec-btn[data-state="armed"] ~ .rec-label,
+    .rec-btn[data-state="recording"] ~ .rec-label { color: var(--brass); }
+
+    .conductor-meta {
+      border-top: 1px solid var(--rule);
+      padding-top: 24px;
+    }
+    .conductor-status {
+      font-family: var(--display);
+      font-variation-settings: "opsz" 18, "SOFT" 80, "wght" 400;
+      font-size: 16px;
+      line-height: 1.4;
+      color: var(--paper);
+      margin: 0 0 8px;
+    }
+    .conductor-status.warn { color: var(--brass-hot); }
+    .conductor-status.err  { color: var(--oxblood-hot); }
+    .conductor-status.ok   { color: var(--paper); }
+    .conductor-hint {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--whisper);
+      margin: 0;
+      line-height: 1.7;
+    }
+
+    /* Subordinate controls (Init camera, Reset) — text-style buttons */
+    .text-btn {
+      background: transparent;
+      border: none;
+      color: var(--brass);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      padding: 8px 0;
+      position: relative;
+      transition: color 200ms var(--ease);
+    }
+    .text-btn::after {
+      content: ""; position: absolute; left: 0; right: 100%; bottom: 4px;
+      height: 1px; background: var(--brass);
+      transition: right 360ms var(--ease);
+    }
+    .text-btn:hover { color: var(--brass-hot); }
+    .text-btn:hover::after { right: 0; }
+    .text-btn:disabled { color: var(--whisper); cursor: not-allowed; }
+    .text-btn:disabled::after { display: none; }
+
+    /* ─── artefacts ─────────────────────────────────────────────────────── */
+    .artefacts-header {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 24px;
+      margin: 96px 0 32px;
+    }
+    .artefacts-header .label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--brass);
+    }
+    .artefacts-header .rule {
+      height: 1px;
+      background: linear-gradient(to right, var(--rule), var(--rule-soft));
+    }
+    .artefacts-header .count {
+      font-family: var(--display);
+      font-variation-settings: "opsz" 80, "SOFT" 100;
+      font-size: 24px;
+      font-style: italic;
+      color: var(--paper-soft);
+    }
+
+    .empty-state {
+      padding: 64px 40px;
+      text-align: center;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      background: var(--velvet);
+      animation: fade-in 600ms 360ms var(--ease) both;
+    }
+    .empty-state p {
+      font-family: var(--display);
+      font-variation-settings: "opsz" 18, "SOFT" 70;
+      font-style: italic;
+      font-size: 16px;
+      color: var(--ash);
+      margin: 0;
+      max-width: 480px;
+      margin-inline: auto;
+      line-height: 1.6;
+    }
+    .empty-state .ornament {
+      font-family: var(--display);
+      font-style: italic;
+      font-size: 32px;
+      color: var(--brass-dim);
+      margin-bottom: 16px;
+      letter-spacing: 0.2em;
+    }
+
+    .artefacts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--rule);
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    @media (max-width: 720px) {
+      .artefacts { grid-template-columns: 1fr; }
+    }
+
+    .artefact {
+      background: var(--velvet);
+      padding: 32px 32px 24px;
+      display: flex; flex-direction: column;
+      gap: 16px;
+      min-height: 360px;
+      position: relative;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 600ms var(--ease), transform 600ms var(--ease), background 300ms var(--ease);
+    }
+    .artefacts.revealed .artefact {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .artefacts.revealed .artefact:nth-child(1) { transition-delay:   0ms; }
+    .artefacts.revealed .artefact:nth-child(2) { transition-delay: 100ms; }
+    .artefacts.revealed .artefact:nth-child(3) { transition-delay: 200ms; }
+    .artefacts.revealed .artefact:nth-child(4) { transition-delay: 300ms; }
+
+    .artefact:hover { background: var(--smoke); }
+
+    .artefact-head {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 18px;
+      align-items: baseline;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .artefact-num {
+      font-family: var(--display);
+      font-variation-settings: "opsz" 144, "SOFT" 100, "wght" 300;
+      font-size: 38px;
+      font-style: italic;
+      line-height: 0.9;
+      color: var(--brass);
+      letter-spacing: -0.02em;
+    }
+    .artefact-titles h3 {
+      font-family: var(--display);
+      font-variation-settings: "opsz" 36, "SOFT" 70, "wght" 400;
+      font-size: 20px;
+      letter-spacing: -0.01em;
+      margin: 0 0 4px;
+      color: var(--paper);
+    }
+    .artefact-titles .kicker {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ash);
+      margin: 0;
+    }
+
+    .artefact-body {
+      flex: 1; display: flex; flex-direction: column; gap: 12px;
+    }
+    .artefact video, .artefact audio {
+      width: 100%;
+      background: var(--ink);
+      border-radius: 2px;
+      filter: saturate(1.05);
+    }
+    .artefact video { aspect-ratio: 16/9; object-fit: cover; }
+    .artefact audio { height: 38px; }
+
+    .artefact-meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--whisper);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .transcript {
+      flex: 1;
+      min-height: 200px; max-height: 320px;
+      overflow-y: auto;
+      padding: 18px 20px;
+      background: rgba(10, 8, 5, 0.4);
+      border-left: 2px solid var(--brass-dim);
+      font-family: var(--display);
+      font-variation-settings: "opsz" 14, "SOFT" 60;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--paper);
+    }
+    .transcript:empty::before {
+      content: "The transcript will appear here once recording stops.";
+      color: var(--whisper);
+      font-style: italic;
+    }
+    .transcript .interim { color: var(--ash); font-style: italic; }
+    .transcript .first-letter::first-letter {
+      font-family: var(--display);
+      font-variation-settings: "opsz" 144, "SOFT" 100;
+      font-size: 3.4em;
+      line-height: 0.85;
+      float: left;
+      padding: 6px 12px 0 0;
+      color: var(--brass);
+      font-style: italic;
+    }
+    /* Custom scrollbar inside transcripts — slim brass thumb */
+    .transcript::-webkit-scrollbar { width: 6px; }
+    .transcript::-webkit-scrollbar-track { background: transparent; }
+    .transcript::-webkit-scrollbar-thumb { background: var(--brass-dim); border-radius: 3px; }
+    .transcript::-webkit-scrollbar-thumb:hover { background: var(--brass); }
+
+    /* Whisper transcribing state — animated brass progress bar */
+    .transcript-loading {
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 24px 20px;
+      background: rgba(10, 8, 5, 0.4);
+      border-left: 2px solid var(--brass);
+      flex: 1; min-height: 200px;
+    }
+    .transcript-loading-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--brass);
+    }
+    .transcript-loading-detail {
+      font-family: var(--display);
+      font-variation-settings: "opsz" 14, "SOFT" 70;
+      font-style: italic;
+      font-size: 13px;
+      color: var(--ash);
+      margin-bottom: 8px;
+    }
+    .transcript-progress {
+      height: 2px;
+      background: var(--rule);
+      position: relative;
+      overflow: hidden;
+    }
+    .transcript-progress-fill {
+      position: absolute; top: 0; left: 0; bottom: 0;
+      width: 0%;
+      background: linear-gradient(to right, var(--brass-dim), var(--brass));
+      transition: width 300ms var(--ease);
+    }
+    .transcript-progress.indeterminate .transcript-progress-fill {
+      width: 35%;
+      animation: indeterminate 1.6s var(--ease) infinite;
+    }
+    @keyframes indeterminate {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(330%); }
+    }
+
+    .artefact-actions {
+      display: flex; gap: 16px;
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--rule);
+    }
+    .artefact-actions .text-btn { padding: 0; }
+
+    .artefact-actions .saved-flash {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--brass-hot);
+      opacity: 0;
+      transition: opacity 250ms var(--ease);
+      align-self: center;
+    }
+    .artefact-actions .saved-flash.visible { opacity: 1; }
+
+    /* ─── analysis ─────────────────────────────────────────────────────── */
+    .analysis {
+      margin-top: 96px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 600ms var(--ease), transform 600ms var(--ease);
+    }
+    .analysis.revealed {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .analysis-card {
+      background: var(--velvet);
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      padding: 32px 36px 24px;
+    }
+    @media (max-width: 640px) {
+      .analysis-card { padding: 20px; }
+    }
+
+    .analysis-loading {
+      padding: 60px 0 40px;
+    }
+
+    .analysis-row {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 24px;
+      align-items: stretch;
+      padding: 18px 0;
+      border-top: 1px solid var(--rule);
+    }
+    .analysis-row:first-of-type { border-top: none; padding-top: 8px; }
+    @media (max-width: 640px) {
+      .analysis-row { grid-template-columns: 1fr; gap: 8px; }
+    }
+
+    .analysis-meta {
+      display: flex; flex-direction: column; gap: 6px;
+      padding-top: 4px;
+    }
+    .analysis-row-title {
+      font-family: var(--display);
+      font-variation-settings: "opsz" 36, "SOFT" 80, "wght" 400;
+      font-size: 18px;
+      font-style: italic;
+      color: var(--paper);
+      line-height: 1;
+    }
+    .analysis-row-units {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ash);
+    }
+    .analysis-row-stat {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--brass-dim);
+      margin-top: auto;
+      padding-top: 8px;
+    }
+
+    .analysis-canvas-wrap {
+      position: relative;
+      height: 120px;
+      background:
+        linear-gradient(to right, var(--rule-soft) 0px, transparent 1px) 0 0 / 25% 100%,
+        linear-gradient(to bottom, var(--rule-soft) 0px, transparent 1px) 0 0 / 100% 33.33%;
+    }
+    .analysis-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+    .analysis-axis {
+      display: flex; justify-content: space-between;
+      padding: 12px 0 4px;
+      margin-left: 114px;
+      border-top: 1px solid var(--rule);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--whisper);
+    }
+    @media (max-width: 640px) {
+      .analysis-axis { margin-left: 0; }
+    }
+
+    /* Legend showing what the brass line + grey gap mean. */
+    .analysis-legend {
+      display: flex; gap: 24px; flex-wrap: wrap;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--rule);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ash);
+    }
+    .analysis-legend span { display: inline-flex; align-items: center; gap: 8px; }
+    .legend-line {
+      width: 22px; height: 2px;
+      background: var(--brass);
+      border-radius: 1px;
+    }
+    .legend-gap {
+      width: 22px; height: 2px;
+      background-image: linear-gradient(to right, var(--whisper) 50%, transparent 50%);
+      background-size: 6px 2px;
+      background-repeat: repeat-x;
+    }
+
+    /* ─── colophon ─────────────────────────────────────────────────────── */
+    .colophon {
+      margin-top: 96px;
+      padding: 40px 0 0;
+      border-top: 1px solid var(--rule);
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 48px;
+    }
+    @media (max-width: 720px) {
+      .colophon { grid-template-columns: 1fr; gap: 16px; }
+    }
+    .colophon-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--brass);
+      margin: 0;
+    }
+    .colophon-text {
+      font-family: var(--display);
+      font-variation-settings: "opsz" 14, "SOFT" 80;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--paper-soft);
+      margin: 0;
+      max-width: 720px;
+    }
+    .colophon-text em {
+      font-style: italic;
+      color: var(--brass-hot);
+    }
+    .colophon-text code {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--smoke);
+      padding: 2px 6px;
+      border-radius: 2px;
+      color: var(--paper);
+    }
+
+    /* Page-load entrance for hero */
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+
+  <header class="masthead">
+    <h1 class="wordmark">Speak<em>easy</em></h1>
+    <p class="masthead-meta">
+      A recording instrument<br>
+      <span>Vol.&nbsp;ⅰ&nbsp;·&nbsp;<span id="year">MMXXVI</span></span>
+    </p>
+  </header>
+
+  <p class="tagline">A note in your own voice — captured, divided, transcribed.</p>
+
+  <section class="hero">
+    <div class="stage" id="stage">
+      <video id="preview" autoplay muted playsinline></video>
+
+      <div class="stage-empty" id="stage-empty">
+        <div class="stage-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v4M8 23h8"/></svg>
+        </div>
+        <p>Grant the camera and microphone to begin. Nothing leaves this tab.</p>
+      </div>
+
+      <div class="timecode" id="timecode" aria-live="polite">
+        <span class="timecode-dot" aria-hidden="true"></span>
+        <span id="timecode-text">00:00</span>
+      </div>
+
+      <div class="meter" id="meter" aria-hidden="true">
+        <canvas id="meter-canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="conductor">
+      <div>
+        <button class="rec-btn" id="rec-btn" data-state="idle" aria-label="Open camera">
+          <span class="rec-ring"></span>
+          <span class="rec-core"></span>
+        </button>
+        <p class="rec-label" id="rec-label">Open the room</p>
+      </div>
+
+      <div class="conductor-meta">
+        <p class="conductor-status" id="status">Awaiting consent.</p>
+        <p class="conductor-hint" id="hint">Camera · microphone · this tab only</p>
+        <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
+          <button class="text-btn hidden" id="btn-reset">▸ Record another</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <header class="artefacts-header">
+    <span class="label">Four Artefacts</span>
+    <div class="rule"></div>
+    <span class="count">i &mdash; iv</span>
+  </header>
+
+  <div class="empty-state" id="empty-state">
+    <div class="ornament">⁂</div>
+    <p>Each recording leaves four pieces behind: the full take, the audio alone, the silent picture, and the words. They appear here when you stop.</p>
+  </div>
+
+  <section class="artefacts hidden" id="artefacts">
+    <article class="artefact" id="art-full">
+      <header class="artefact-head">
+        <div class="artefact-num">i</div>
+        <div class="artefact-titles">
+          <h3>The full take</h3>
+          <p class="kicker">Video · audio · synced</p>
+        </div>
+      </header>
+      <div class="artefact-body">
+        <video id="play-full" controls preload="metadata"></video>
+        <p class="artefact-meta" id="meta-full">—</p>
+      </div>
+      <footer class="artefact-actions">
+        <button class="text-btn" data-target="full">▸ Save to disk</button>
+        <span class="saved-flash" data-flash="full">saved</span>
+      </footer>
+    </article>
+
+    <article class="artefact" id="art-audio">
+      <header class="artefact-head">
+        <div class="artefact-num">ii</div>
+        <div class="artefact-titles">
+          <h3>Audio alone</h3>
+          <p class="kicker">Just the sound</p>
+        </div>
+      </header>
+      <div class="artefact-body">
+        <audio id="play-audio" controls preload="metadata"></audio>
+        <p class="artefact-meta" id="meta-audio">—</p>
+      </div>
+      <footer class="artefact-actions">
+        <button class="text-btn" data-target="audio">▸ Save to disk</button>
+        <span class="saved-flash" data-flash="audio">saved</span>
+      </footer>
+    </article>
+
+    <article class="artefact" id="art-video">
+      <header class="artefact-head">
+        <div class="artefact-num">iii</div>
+        <div class="artefact-titles">
+          <h3>Silent footage</h3>
+          <p class="kicker">Picture without voice</p>
+        </div>
+      </header>
+      <div class="artefact-body">
+        <video id="play-video" controls muted preload="metadata"></video>
+        <p class="artefact-meta" id="meta-video">—</p>
+      </div>
+      <footer class="artefact-actions">
+        <button class="text-btn" data-target="video">▸ Save to disk</button>
+        <span class="saved-flash" data-flash="video">saved</span>
+      </footer>
+    </article>
+
+    <article class="artefact" id="art-text">
+      <header class="artefact-head">
+        <div class="artefact-num">iv</div>
+        <div class="artefact-titles">
+          <h3>The words</h3>
+          <p class="kicker">Whisper · base.en · in-browser</p>
+        </div>
+      </header>
+      <div class="artefact-body">
+        <div class="transcript-loading hidden" id="transcript-loading">
+          <p class="transcript-loading-label" id="loading-label">Loading model</p>
+          <p class="transcript-loading-detail" id="loading-detail">First time only · ≈ 145 MB · cached after</p>
+          <div class="transcript-progress indeterminate" id="loading-progress">
+            <div class="transcript-progress-fill" id="loading-fill"></div>
+          </div>
+        </div>
+        <div class="transcript" id="transcript"></div>
+        <p class="artefact-meta" id="meta-text">—</p>
+      </div>
+      <footer class="artefact-actions">
+        <button class="text-btn" data-target="text">▸ Save to disk</button>
+        <button class="text-btn" id="btn-copy">▸ Copy</button>
+        <span class="saved-flash" data-flash="text">saved</span>
+      </footer>
+    </article>
+  </section>
+
+  <section class="analysis hidden" id="analysis">
+    <header class="artefacts-header" style="margin-top: 0;">
+      <span class="label">Analysis</span>
+      <div class="rule"></div>
+      <span class="count">over time</span>
+    </header>
+
+    <div class="analysis-card">
+      <div class="analysis-loading hidden" id="analysis-loading">
+        <p class="transcript-loading-label">Analysing audio</p>
+        <p class="transcript-loading-detail">Pitch · volume · pace · silence</p>
+        <div class="transcript-progress indeterminate">
+          <div class="transcript-progress-fill"></div>
+        </div>
+      </div>
+
+      <div id="analysis-charts" class="hidden">
+        <div class="analysis-row">
+          <div class="analysis-meta">
+            <span class="analysis-row-title">Pitch</span>
+            <span class="analysis-row-units">Hertz</span>
+            <span class="analysis-row-stat" id="stat-pitch">—</span>
+          </div>
+          <div class="analysis-canvas-wrap">
+            <canvas class="analysis-canvas" id="canvas-pitch"></canvas>
+          </div>
+        </div>
+
+        <div class="analysis-row">
+          <div class="analysis-meta">
+            <span class="analysis-row-title">Volume</span>
+            <span class="analysis-row-units">Decibels</span>
+            <span class="analysis-row-stat" id="stat-volume">—</span>
+          </div>
+          <div class="analysis-canvas-wrap">
+            <canvas class="analysis-canvas" id="canvas-volume"></canvas>
+          </div>
+        </div>
+
+        <div class="analysis-row">
+          <div class="analysis-meta">
+            <span class="analysis-row-title">Pace</span>
+            <span class="analysis-row-units">Words / min</span>
+            <span class="analysis-row-stat" id="stat-pace">—</span>
+          </div>
+          <div class="analysis-canvas-wrap">
+            <canvas class="analysis-canvas" id="canvas-pace"></canvas>
+          </div>
+        </div>
+
+        <div class="analysis-axis" id="analysis-axis"></div>
+
+        <div class="analysis-legend">
+          <span><span class="legend-line"></span>Speaking</span>
+          <span><span class="legend-gap"></span>Silence</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="colophon">
+    <p class="colophon-label">A note on the<br>fourth artefact</p>
+    <p class="colophon-text">
+      Transcription runs <em>entirely in the browser</em>. The model is OpenAI's
+      Whisper (<code>base.en</code>) compiled to ONNX and served via
+      <code>@xenova/transformers</code>; on first use the weights download once
+      (≈ 145 MB) and live thereafter in your browser cache. Nothing is sent to
+      any server, and the next recording transcribes instantly.
+    </p>
+  </section>
+
+</main>
+
+<script type="module">
+'use strict';
+
+// Whisper (Xenova/transformers) loaded from CDN. Loaded lazily — the model
+// download is ~145 MB and we don't want to pay the cost until the user
+// actually records. The pipeline factory caches itself; subsequent calls
+// reuse the same instance.
+import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2";
+// Force WASM execution — WebGPU support is patchy across Chrome versions
+// and the base.en model is tiny enough that CPU inference is plenty fast.
+env.allowLocalModels = false;
+env.useBrowserCache = true;
+
+// ── DOM refs ────────────────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+const els = {
+  stage:           $('stage'),
+  preview:         $('preview'),
+  stageEmpty:      $('stage-empty'),
+  timecode:        $('timecode'),
+  timecodeText:    $('timecode-text'),
+  meter:           $('meter'),
+  meterCanvas:     $('meter-canvas'),
+  recBtn:          $('rec-btn'),
+  recLabel:        $('rec-label'),
+  status:          $('status'),
+  hint:            $('hint'),
+  btnReset:        $('btn-reset'),
+  emptyState:      $('empty-state'),
+  artefacts:       $('artefacts'),
+  playFull:        $('play-full'),
+  playAudio:       $('play-audio'),
+  playVideo:       $('play-video'),
+  transcript:      $('transcript'),
+  transcriptLoad:  $('transcript-loading'),
+  loadingLabel:    $('loading-label'),
+  loadingDetail:   $('loading-detail'),
+  loadingProgress: $('loading-progress'),
+  loadingFill:     $('loading-fill'),
+  metaFull:        $('meta-full'),
+  metaAudio:       $('meta-audio'),
+  metaVideo:       $('meta-video'),
+  metaText:        $('meta-text'),
+  btnCopy:         $('btn-copy'),
+  analysis:        $('analysis'),
+  analysisLoad:    $('analysis-loading'),
+  analysisCharts:  $('analysis-charts'),
+  canvasPitch:     $('canvas-pitch'),
+  canvasVolume:    $('canvas-volume'),
+  canvasPace:      $('canvas-pace'),
+  statPitch:       $('stat-pitch'),
+  statVolume:      $('stat-volume'),
+  statPace:        $('stat-pace'),
+  analysisAxis:    $('analysis-axis'),
+};
+
+// Last analysis result kept for redraw on resize.
+let lastAnalysis = null;
+
+// ── state ───────────────────────────────────────────────────────────────────
+let stream = null;
+let recorders = null;
+let chunks = null;
+let recStartedAt = 0;
+let timerHandle = null;
+let blobs = null;
+let baseFilename = '';
+let transcriptText = '';
+let whisperPromise = null;     // memoised pipeline factory
+let audioContext = null;
+let analyser = null;
+let meterRaf = null;
+
+// ── setters ─────────────────────────────────────────────────────────────────
+function setRecState(state) {
+  // states: idle | armed | recording | finalising
+  els.recBtn.dataset.state = state;
+  const labels = {
+    idle:       'Open the room',
+    armed:      '◉  Begin recording',
+    recording:  '■  Stop & divide',
+    finalising: 'Finalising…',
+  };
+  els.recLabel.textContent = labels[state] ?? '';
+  els.recBtn.disabled = state === 'finalising';
+  els.recBtn.setAttribute('aria-label', labels[state] ?? state);
+}
+
+function setStatus(text, kind = '') {
+  els.status.textContent = text;
+  els.status.className = 'conductor-status' + (kind ? ' ' + kind : '');
+}
+
+function setHint(text) {
+  els.hint.textContent = text;
+}
+
+// ── helpers ─────────────────────────────────────────────────────────────────
+function fmtClock(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function humanSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function timestampSlug() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+         `T${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+}
+
+function pickMime(candidates) {
+  for (const c of candidates) {
+    if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) return c;
+  }
+  return '';
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+// ── audio meter (canvas) ────────────────────────────────────────────────────
+// Slim vertical bars rendered in brass, smoothly interpolated against the
+// AnalyserNode's frequency bins. The visualization isn't strictly necessary
+// but it makes "I'm listening" obvious in a way a static dot never does.
+const METER_BARS = 48;
+const meterValues = new Array(METER_BARS).fill(0);
+
+function startMeter() {
+  const stream2 = stream;
+  if (!stream2) return;
+  if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioContext.state === 'suspended') audioContext.resume();
+  const src = audioContext.createMediaStreamSource(new MediaStream(stream2.getAudioTracks()));
+  analyser = audioContext.createAnalyser();
+  analyser.fftSize = 256;
+  analyser.smoothingTimeConstant = 0.6;
+  src.connect(analyser);
+
+  els.meter.classList.add('visible');
+  resizeMeterCanvas();
+  drawMeter();
+}
+
+function stopMeter() {
+  if (meterRaf) cancelAnimationFrame(meterRaf);
+  meterRaf = null;
+  els.meter.classList.remove('visible');
+  // Don't kill audioContext — reusing it keeps the next recording's meter
+  // hot from frame zero.
+  meterValues.fill(0);
+}
+
+function resizeMeterCanvas() {
+  const c = els.meterCanvas;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = c.getBoundingClientRect();
+  c.width = rect.width * dpr;
+  c.height = rect.height * dpr;
+  const ctx = c.getContext('2d');
+  ctx.scale(dpr, dpr);
+}
+
+function drawMeter() {
+  const c = els.meterCanvas;
+  const ctx = c.getContext('2d');
+  const W = c.width / (window.devicePixelRatio || 1);
+  const H = c.height / (window.devicePixelRatio || 1);
+  ctx.clearRect(0, 0, W, H);
+
+  if (analyser) {
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    // Bin the bins down to METER_BARS — log-ish spacing biased toward voice.
+    for (let i = 0; i < METER_BARS; i++) {
+      const t = i / (METER_BARS - 1);
+      const idx = Math.min(data.length - 1, Math.round(Math.pow(t, 1.4) * (data.length / 2)));
+      const v = data[idx] / 255;
+      meterValues[i] = meterValues[i] * 0.7 + v * 0.3;
+    }
+  }
+
+  const gap = 3;
+  const barW = (W - gap * (METER_BARS - 1)) / METER_BARS;
+  const baseline = H - 8;
+  const maxH = H - 16;
+
+  for (let i = 0; i < METER_BARS; i++) {
+    const v = meterValues[i];
+    const h = Math.max(1.5, v * maxH);
+    const x = i * (barW + gap);
+    const y = baseline - h;
+    // Brass with gentle alpha falloff toward the top.
+    const grad = ctx.createLinearGradient(0, y, 0, baseline);
+    grad.addColorStop(0, `rgba(227, 192, 142, ${0.3 + v * 0.5})`);
+    grad.addColorStop(1, `rgba(201, 168, 120, ${0.7 + v * 0.3})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, barW, h);
+  }
+  meterRaf = requestAnimationFrame(drawMeter);
+}
+
+window.addEventListener('resize', () => {
+  if (els.meter.classList.contains('visible')) resizeMeterCanvas();
+});
+
+// ── camera bootstrap ────────────────────────────────────────────────────────
+async function initCamera() {
+  setStatus('Asking your browser for the room…');
+  setHint('Granting access · please confirm');
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: { echoCancellation: true, noiseSuppression: true },
+    });
+  } catch (e) {
+    setStatus('Access was denied.', 'err');
+    setHint(e.message || 'Try again from your browser settings');
+    return;
+  }
+  els.preview.srcObject = stream;
+  els.stage.classList.add('live');
+  setRecState('armed');
+  setStatus('The room is open.', 'ok');
+  setHint('Press the brass when you\'re ready');
+  // Pre-warm the Whisper model in the background so the first transcription
+  // doesn't make the user wait for a 145 MB download AND a recording.
+  prewarmWhisper();
+}
+
+// ── recording lifecycle ─────────────────────────────────────────────────────
+function startRecording() {
+  if (!stream) return;
+  const audioTracks = stream.getAudioTracks();
+  const videoTracks = stream.getVideoTracks();
+  const audioStream = new MediaStream(audioTracks);
+  const videoStream = new MediaStream(videoTracks);
+
+  const fullMime  = pickMime(['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']);
+  const audioMime = pickMime(['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']);
+  const videoMime = pickMime(['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4']);
+
+  recorders = {
+    full:  new MediaRecorder(stream,      fullMime  ? { mimeType: fullMime  } : undefined),
+    audio: new MediaRecorder(audioStream, audioMime ? { mimeType: audioMime } : undefined),
+    video: new MediaRecorder(videoStream, videoMime ? { mimeType: videoMime } : undefined),
+  };
+  chunks = { full: [], audio: [], video: [] };
+
+  for (const key of ['full', 'audio', 'video']) {
+    recorders[key].addEventListener('dataavailable', (ev) => {
+      if (ev.data && ev.data.size) chunks[key].push(ev.data);
+    });
+  }
+  recorders.full.start(250);
+  recorders.audio.start(250);
+  recorders.video.start(250);
+
+  startMeter();
+
+  recStartedAt = Date.now();
+  els.timecode.classList.add('visible');
+  els.timecodeText.textContent = '00:00';
+  timerHandle = setInterval(() => {
+    els.timecodeText.textContent = fmtClock(Date.now() - recStartedAt);
+  }, 250);
+
+  setRecState('recording');
+  setStatus('Listening.', 'ok');
+  setHint('Press again to stop and divide');
+}
+
+async function stopRecording() {
+  if (!recorders) return;
+  setRecState('finalising');
+  setStatus('Finalising the take…');
+  setHint('Closing the recorders');
+  clearInterval(timerHandle);
+  stopMeter();
+  els.timecode.classList.remove('visible');
+
+  const stops = ['full', 'audio', 'video'].map((key) => new Promise((resolve) => {
+    recorders[key].addEventListener('stop', resolve, { once: true });
+    recorders[key].stop();
+  }));
+  await Promise.all(stops);
+
+  blobs = {};
+  for (const key of ['full', 'audio', 'video']) {
+    const type = recorders[key].mimeType || (key === 'audio' ? 'audio/webm' : 'video/webm');
+    blobs[key] = new Blob(chunks[key], { type });
+  }
+
+  baseFilename = `speakeasy-${timestampSlug()}`;
+  presentMediaArtefacts();
+
+  // Fire transcription in parallel with file saves — Whisper takes 5-30 s on
+  // base.en; the user can already play and save the other artefacts while it
+  // works. The transcript panel shows its own progress UI.
+  transcribeAudioBlob(blobs.audio).catch((err) => {
+    console.error('transcription failed', err);
+    showTranscriptError(err);
+  });
+
+  // Save the three media artefacts immediately to the user's Downloads
+  // folder. Text is saved later, after Whisper finishes.
+  const targets = ['full', 'audio', 'video'];
+  for (let i = 0; i < targets.length; i++) {
+    setTimeout(() => saveTarget(targets[i]), i * 250);
+  }
+
+  setRecState('armed');
+  els.btnReset.classList.remove('hidden');
+  setStatus('Saved to your Downloads folder.', 'ok');
+  setHint('Press the brass for another take');
+}
+
+function presentMediaArtefacts() {
+  els.emptyState.classList.add('hidden');
+  els.artefacts.classList.remove('hidden');
+  // Trigger the staggered reveal on next frame so the transition fires.
+  requestAnimationFrame(() => els.artefacts.classList.add('revealed'));
+
+  els.playFull.src  = URL.createObjectURL(blobs.full);
+  els.playAudio.src = URL.createObjectURL(blobs.audio);
+  els.playVideo.src = URL.createObjectURL(blobs.video);
+
+  const dur = (Date.now() - recStartedAt) / 1000;
+  const durStr = `${Math.floor(dur / 60)}:${String(Math.round(dur % 60)).padStart(2, '0')}`;
+
+  els.metaFull.textContent  = `${displayMime(blobs.full.type, 'video')} · ${humanSize(blobs.full.size)} · ${durStr}`;
+  els.metaAudio.textContent = `${displayMime(blobs.audio.type, 'audio')} · ${humanSize(blobs.audio.size)} · ${durStr}`;
+  els.metaVideo.textContent = `${displayMime(blobs.video.type, 'video')} · ${humanSize(blobs.video.size)} · audio stripped at capture`;
+  els.metaText.textContent  = '—';
+}
+
+function displayMime(type, kind) {
+  if (!type) return kind;
+  // "video/webm;codecs=vp9,opus" → "webm vp9"
+  const [base, params] = type.split(';');
+  const container = base.split('/')[1] || kind;
+  if (!params) return container;
+  const codecs = params.replace(/codecs=/, '').replace(/[",]/g, ' ').trim();
+  return `${container} · ${codecs.split(/\s+/)[0]}`;
+}
+
+function resetForAnother() {
+  for (const v of [els.playFull, els.playAudio, els.playVideo]) {
+    if (v.src && v.src.startsWith('blob:')) URL.revokeObjectURL(v.src);
+    v.removeAttribute('src');
+    v.load();
+  }
+  els.artefacts.classList.add('hidden');
+  els.artefacts.classList.remove('revealed');
+  els.emptyState.classList.remove('hidden');
+  els.transcript.textContent = '';
+  els.transcript.classList.remove('first-letter');
+  els.transcriptLoad.classList.add('hidden');
+  els.analysis.classList.add('hidden');
+  els.analysis.classList.remove('revealed');
+  els.analysisLoad.classList.add('hidden');
+  els.analysisCharts.classList.add('hidden');
+  lastAnalysis = null;
+  for (const flash of document.querySelectorAll('.saved-flash')) flash.classList.remove('visible');
+  els.btnReset.classList.add('hidden');
+  blobs = null;
+  recorders = null;
+  chunks = null;
+  transcriptText = '';
+  setStatus('The room is open.', 'ok');
+  setHint('Press the brass when you\'re ready');
+}
+
+// ── Whisper transcription (in-browser) ──────────────────────────────────────
+function prewarmWhisper() {
+  // Kicks off the model fetch as a side-effect; the actual pipeline isn't
+  // used until transcribeAudioBlob() awaits it. We don't surface any UI
+  // here — the goal is to silently shave the wait off the first transcription.
+  if (!whisperPromise) whisperPromise = loadWhisper(() => {});
+}
+
+async function loadWhisper(onProgress) {
+  showTranscriptLoading('Loading model', 'First time only · ≈ 145 MB · cached after this');
+  // Xenova/whisper-base.en — best accuracy/size balance for English speech.
+  // For multilingual, swap to "Xenova/whisper-base" (no .en) at ~290 MB.
+  const pipe = await pipeline(
+    'automatic-speech-recognition',
+    'Xenova/whisper-base.en',
+    {
+      progress_callback: (p) => {
+        if (p.status === 'progress' && p.file && p.file.endsWith('.onnx')) {
+          // p.progress is 0-100. The .onnx file is the dominant download —
+          // showing its progress is more honest than averaging tokenizer +
+          // config files which finish in milliseconds.
+          updateLoadingProgress(p.progress, `Downloading model · ${Math.round(p.progress)}%`);
+          if (onProgress) onProgress(p.progress);
+        } else if (p.status === 'ready') {
+          updateLoadingProgress(100, 'Model ready');
+        } else if (p.status === 'initiate') {
+          showTranscriptLoading('Loading model', `Fetching ${p.file ?? 'weights'}…`);
+        }
+      },
+    }
+  );
+  return pipe;
+}
+
+async function transcribeAudioBlob(audioBlob) {
+  if (!whisperPromise) whisperPromise = loadWhisper(() => {});
+  const transcriber = await whisperPromise;
+
+  // Decode the recorded audio (webm/opus or mp4/aac) into a Float32 buffer
+  // resampled to 16 kHz mono — Whisper's required input format. AudioContext
+  // does the sample-rate conversion natively; we just pick channel 0.
+  showTranscriptLoading('Transcribing', 'Whisper is listening…');
+  setIndeterminate(true);
+
+  const arrayBuf = await audioBlob.arrayBuffer();
+  const ctx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)
+    ? new AudioContext({ sampleRate: 16000 })
+    : new AudioContext();
+  let decoded;
+  try {
+    decoded = await ctx.decodeAudioData(arrayBuf);
+  } catch (e) {
+    throw new Error('Could not decode the audio: ' + e.message);
+  }
+
+  // If decodeAudioData ignored our 16 kHz hint (Safari does), resample
+  // via OfflineAudioContext into the target rate.
+  let pcm16k;
+  if (decoded.sampleRate === 16000) {
+    pcm16k = decoded.numberOfChannels > 1 ? mixToMono(decoded) : decoded.getChannelData(0);
+  } else {
+    pcm16k = await resampleTo16k(decoded);
+  }
+
+  // Word-level timestamps power the pace chart in the Analysis section.
+  // The chunked output looks like { text, chunks: [{text, timestamp:[s,e]}] }.
+  const result = await transcriber(pcm16k, {
+    chunk_length_s: 30,
+    stride_length_s: 5,
+    return_timestamps: 'word',
+    callback_function: () => {
+      // base.en streams in coarse chunks — better UX is a single calm
+      // reveal at the end with the drop-cap.
+    },
+  });
+
+  transcriptText = (result.text ?? '').trim();
+  showTranscript(transcriptText || '(no speech detected)');
+
+  // Build the transcript blob and save it now that we have content.
+  blobs.text = new Blob([transcriptText || '(no speech detected)'], { type: 'text/plain;charset=utf-8' });
+  els.metaText.textContent = `${blobs.text.size} bytes · ${transcriptText.split(/\s+/).filter(Boolean).length} words`;
+  setTimeout(() => saveTarget('text'), 200);
+  ctx.close && ctx.close();
+
+  // Kick off the audio-analysis pass on the same Float32 buffer we already
+  // resampled for Whisper. setTimeout 60 ms gives the transcript reveal a
+  // beat to paint before we hog the main thread with autocorrelation.
+  const wordChunks = Array.isArray(result.chunks) ? result.chunks : [];
+  const duration = pcm16k.length / 16000;
+  showAnalysisLoading();
+  setTimeout(() => {
+    try {
+      const data = computeAnalysis(pcm16k, 16000, wordChunks, duration);
+      presentAnalysis(data, duration);
+    } catch (e) {
+      console.error('analysis failed', e);
+      // Hide the analysis section silently on failure rather than show a
+      // broken card — the four artefacts above still saved successfully.
+      els.analysis.classList.add('hidden');
+    }
+  }, 60);
+}
+
+function mixToMono(audioBuffer) {
+  const left = audioBuffer.getChannelData(0);
+  const right = audioBuffer.getChannelData(1);
+  const out = new Float32Array(left.length);
+  for (let i = 0; i < left.length; i++) out[i] = (left[i] + right[i]) * 0.5;
+  return out;
+}
+
+async function resampleTo16k(buffer) {
+  const ratio = 16000 / buffer.sampleRate;
+  const length = Math.floor(buffer.length * ratio);
+  const offline = new OfflineAudioContext(1, length, 16000);
+  const src = offline.createBufferSource();
+  // Mono mixdown happens implicitly via channelCountMode below.
+  src.buffer = buffer;
+  src.channelCountMode = 'explicit';
+  src.channelCount = 1;
+  src.connect(offline.destination);
+  src.start();
+  const rendered = await offline.startRendering();
+  return rendered.getChannelData(0);
+}
+
+function showTranscriptLoading(label, detail) {
+  els.transcriptLoad.classList.remove('hidden');
+  els.transcript.style.display = 'none';
+  els.loadingLabel.textContent = label;
+  els.loadingDetail.textContent = detail;
+}
+
+function setIndeterminate(yes) {
+  if (yes) els.loadingProgress.classList.add('indeterminate');
+  else els.loadingProgress.classList.remove('indeterminate');
+}
+
+function updateLoadingProgress(pct, detail) {
+  setIndeterminate(false);
+  els.loadingFill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+  if (detail) els.loadingDetail.textContent = detail;
+}
+
+function showTranscript(text) {
+  els.transcriptLoad.classList.add('hidden');
+  els.transcript.style.display = '';
+  els.transcript.textContent = text;
+  // Drop-cap looks great when there's actual prose — apply only when the
+  // first character is a letter. (Punctuation like "(" or "—" looks odd
+  // huge and hanging in the margin.)
+  if (/^[a-zA-Z]/.test(text)) els.transcript.classList.add('first-letter');
+  else els.transcript.classList.remove('first-letter');
+}
+
+function showTranscriptError(err) {
+  els.transcriptLoad.classList.add('hidden');
+  els.transcript.style.display = '';
+  els.transcript.classList.remove('first-letter');
+  els.transcript.innerHTML = `<em style="color:var(--oxblood-hot)">Transcription failed.</em><br>${escapeHtml(err.message ?? String(err))}`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ── save buttons ───────────────────────────────────────────────────────────
+const EXT = { full: 'webm', audio: 'webm', video: 'webm', text: 'txt' };
+
+function saveTarget(target) {
+  if (!blobs || !blobs[target]) return;
+  let ext = EXT[target];
+  if (target !== 'text') {
+    const t = blobs[target].type || '';
+    if (t.includes('mp4')) ext = (target === 'audio') ? 'm4a' : 'mp4';
+    else if (t.includes('ogg')) ext = 'ogg';
+  }
+  downloadBlob(blobs[target], `${baseFilename}-${target}.${ext}`);
+  flashSaved(target);
+}
+
+function flashSaved(target) {
+  const flash = document.querySelector(`.saved-flash[data-flash="${target}"]`);
+  if (!flash) return;
+  flash.classList.add('visible');
+  setTimeout(() => flash.classList.remove('visible'), 1800);
+}
+
+// ── audio analysis ─────────────────────────────────────────────────────────
+// Pitch · volume · pace, all computed off the same 16 kHz Float32 buffer
+// that Whisper already chewed on. The series share a time axis and render
+// as three small multiples in the Analysis card.
+
+const ANALYSIS = {
+  WIN: 1024,            // ~64 ms at 16 kHz — long enough to capture a 50 Hz period
+  HOP: 512,             // 50 % overlap → smoother lines
+  MIN_LAG: 40,          // 16000 / 40 = 400 Hz (top of voice range)
+  MAX_LAG: 320,         // 16000 / 320 = 50 Hz (bottom of voice range)
+  SILENCE_DB: -45,      // below this we call it silence
+  PACE_HOP_S: 0.2,      // 200 ms between pace samples
+  PACE_WIN_S: 3.0,      // count words inside ±1.5 s of t
+};
+
+function rmsDb(buf) {
+  let sum = 0;
+  for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+  const rms = Math.sqrt(sum / buf.length);
+  return 20 * Math.log10(Math.max(1e-10, rms));
+}
+
+/**
+ * Cheap autocorrelation pitch detector tuned for speech. Searches integer
+ * lags in [40, 320] (= 50–400 Hz at 16 kHz) and returns the lag with the
+ * highest normalized self-similarity. Returns null when the frame doesn't
+ * have a strong periodic signal — voiceless consonants, silence, noise.
+ *
+ * Two safeguards against octave errors:
+ *   - require correlation > 0.4 (empirical threshold)
+ *   - prefer the lowest lag whose correlation is within 95 % of the peak
+ *     (favours the true fundamental over its first harmonic)
+ */
+function detectPitch(buf, sampleRate) {
+  const SIZE = buf.length;
+  // Quick energy gate so we don't waste cycles on silence frames.
+  let energy = 0;
+  for (let i = 0; i < SIZE; i++) energy += buf[i] * buf[i];
+  if (Math.sqrt(energy / SIZE) < 0.005) return null;
+
+  // Autocorrelation across the voice-relevant lag range.
+  const corrs = new Float32Array(ANALYSIS.MAX_LAG + 1);
+  let peak = 0;
+  let peakLag = -1;
+  for (let lag = ANALYSIS.MIN_LAG; lag <= ANALYSIS.MAX_LAG; lag++) {
+    let c = 0;
+    const N = SIZE - lag;
+    for (let i = 0; i < N; i++) c += buf[i] * buf[i + lag];
+    c /= N;
+    corrs[lag] = c;
+    if (c > peak) { peak = c; peakLag = lag; }
+  }
+  if (peak < 0.4 || peakLag < 0) return null;
+
+  // Prefer the lowest lag whose correlation is within 95 % of the peak —
+  // helps avoid the classic "octave higher" failure mode.
+  const threshold = peak * 0.95;
+  let bestLag = peakLag;
+  for (let lag = ANALYSIS.MIN_LAG; lag <= peakLag; lag++) {
+    if (corrs[lag] >= threshold) { bestLag = lag; break; }
+  }
+  return sampleRate / bestLag;
+}
+
+function computeAnalysis(pcm, sampleRate, wordChunks, duration) {
+  const series = { pitch: [], volume: [], pace: [] };
+  const numFrames = Math.max(0, Math.floor((pcm.length - ANALYSIS.WIN) / ANALYSIS.HOP));
+
+  for (let f = 0; f < numFrames; f++) {
+    const start = f * ANALYSIS.HOP;
+    const win = pcm.subarray(start, start + ANALYSIS.WIN);
+    const t = start / sampleRate;
+
+    const db = rmsDb(win);
+    const isSilent = db < ANALYSIS.SILENCE_DB;
+
+    series.volume.push({ t, value: db, silent: isSilent });
+    series.pitch.push({
+      t,
+      value: isSilent ? null : detectPitch(win, sampleRate),
+      silent: isSilent,
+    });
+  }
+
+  // Collapse single-frame "silence" blips inside speech back into voiced
+  // frames — autocorrelation occasionally drops a frame in the middle of
+  // a word and the chart looks chopped up. Two consecutive silent frames
+  // count as real silence, one doesn't.
+  smoothSilence(series.pitch);
+  smoothSilence(series.volume);
+
+  // Pace from word timestamps. Sample at 200 ms intervals; at each t,
+  // count words whose midpoint lies inside a 3 s window centred on t,
+  // then scale to words-per-minute.
+  const wordTimes = wordChunks
+    .map((c) => {
+      const ts = c.timestamp ?? c.timestamps ?? null;
+      if (!ts || ts.length < 2) return null;
+      const [s, e] = ts;
+      if (typeof s !== 'number' || typeof e !== 'number') return null;
+      return (s + e) / 2;
+    })
+    .filter((t) => t !== null && !Number.isNaN(t));
+
+  if (wordTimes.length === 0) {
+    // No reliable timestamps — leave the pace chart empty rather than fake it.
+    series.pace = [];
+  } else {
+    for (let t = 0; t <= duration + 0.001; t += ANALYSIS.PACE_HOP_S) {
+      const lo = t - ANALYSIS.PACE_WIN_S / 2;
+      const hi = t + ANALYSIS.PACE_WIN_S / 2;
+      // Linear scan is fine — wordTimes is short and we're not doing this
+      // per-frame at audio rate.
+      let count = 0;
+      for (const wt of wordTimes) {
+        if (wt >= lo && wt <= hi) count++;
+      }
+      const wpm = count * (60 / ANALYSIS.PACE_WIN_S);
+      // No words in window = silence in the pace chart (gap).
+      series.pace.push({ t, value: count === 0 ? null : wpm, silent: count === 0 });
+    }
+  }
+
+  return series;
+}
+
+function smoothSilence(arr) {
+  // Flip a single-frame silent island back to its neighbouring voiced
+  // frame's value (or to silent if both neighbours are silent).
+  for (let i = 1; i < arr.length - 1; i++) {
+    if (arr[i].silent && !arr[i - 1].silent && !arr[i + 1].silent) {
+      const before = arr[i - 1].value;
+      const after = arr[i + 1].value;
+      if (before != null && after != null) {
+        arr[i] = { t: arr[i].t, value: (before + after) / 2, silent: false };
+      }
+    }
+  }
+}
+
+// ── chart rendering ────────────────────────────────────────────────────────
+function showAnalysisLoading() {
+  els.analysis.classList.remove('hidden');
+  requestAnimationFrame(() => els.analysis.classList.add('revealed'));
+  els.analysisLoad.classList.remove('hidden');
+  els.analysisCharts.classList.add('hidden');
+}
+
+function presentAnalysis(data, duration) {
+  lastAnalysis = { data, duration };
+  els.analysisLoad.classList.add('hidden');
+  els.analysisCharts.classList.remove('hidden');
+
+  // Pitch range — clamp to a sensible voice range so a single octave
+  // outlier doesn't squash the rest of the line.
+  const pitchVals = data.pitch.filter((d) => d.value != null).map((d) => d.value);
+  let pitchMin = pitchVals.length ? Math.min(...pitchVals) : 80;
+  let pitchMax = pitchVals.length ? Math.max(...pitchVals) : 240;
+  if (pitchMax - pitchMin < 40) {
+    const c = (pitchMin + pitchMax) / 2;
+    pitchMin = c - 20; pitchMax = c + 20;
+  }
+  const pitchPad = (pitchMax - pitchMin) * 0.15;
+  pitchMin = Math.max(40, pitchMin - pitchPad);
+  pitchMax = Math.min(500, pitchMax + pitchPad);
+
+  drawSeries(els.canvasPitch, data.pitch, pitchMin, pitchMax, duration, '{value} Hz');
+  drawSeries(els.canvasVolume, data.volume, -85, 0, duration, '{value} dB');
+
+  // Pace: fix Y range to a useful conversational band but expand if needed.
+  const paceVals = data.pace.filter((d) => d.value != null).map((d) => d.value);
+  let paceMax = paceVals.length ? Math.max(220, Math.max(...paceVals) * 1.1) : 220;
+  drawSeries(els.canvasPace, data.pace, 0, paceMax, duration, '{value} wpm');
+
+  // Stat lines under each chart title.
+  if (pitchVals.length) {
+    const mean = pitchVals.reduce((a, b) => a + b, 0) / pitchVals.length;
+    els.statPitch.textContent = `mean ${Math.round(mean)} Hz · range ${Math.round(pitchMin)}–${Math.round(pitchMax)}`;
+  } else {
+    els.statPitch.textContent = 'no voiced frames detected';
+  }
+  if (data.volume.length) {
+    const voiced = data.volume.filter((d) => !d.silent).map((d) => d.value);
+    if (voiced.length) {
+      const mean = voiced.reduce((a, b) => a + b, 0) / voiced.length;
+      const peak = Math.max(...voiced);
+      const silentPct = Math.round((data.volume.filter((d) => d.silent).length / data.volume.length) * 100);
+      els.statVolume.textContent = `peak ${peak.toFixed(1)} dB · mean ${mean.toFixed(1)} dB · ${silentPct}% silence`;
+    } else {
+      els.statVolume.textContent = 'silent';
+    }
+  }
+  if (paceVals.length) {
+    const mean = paceVals.reduce((a, b) => a + b, 0) / paceVals.length;
+    const peak = Math.max(...paceVals);
+    els.statPace.textContent = `mean ${Math.round(mean)} wpm · peak ${Math.round(peak)} wpm`;
+  } else {
+    els.statPace.textContent = 'no word-level timestamps';
+  }
+
+  // Time axis tick labels — share across the three charts.
+  const ticks = 5;
+  els.analysisAxis.innerHTML = '';
+  for (let i = 0; i < ticks; i++) {
+    const t = (duration * i) / (ticks - 1);
+    const span = document.createElement('span');
+    span.textContent = fmtClock(t * 1000);
+    els.analysisAxis.appendChild(span);
+  }
+}
+
+/**
+ * Draw one series to a canvas. `series` is [{t, value, silent}, ...]; gaps
+ * (silent or null value) become line breaks rather than zero values, which
+ * is the user's "discontinuations for silence" requirement.
+ *
+ * Rendering style:
+ *   - hairline brass line (1.5 px) with subtle glow
+ *   - faint horizontal dashed rule on the chart's mean
+ *   - silent regions get a barely-visible shaded band so the gap is read
+ *     as "I was quiet" rather than "the data is missing"
+ */
+function drawSeries(canvas, series, yMin, yMax, duration, _fmt) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width === 0) return;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const PAD_T = 8, PAD_B = 8;
+  const innerH = H - PAD_T - PAD_B;
+  const xOf = (t) => (t / Math.max(0.001, duration)) * W;
+  const yOf = (v) => PAD_T + innerH * (1 - (v - yMin) / Math.max(0.001, (yMax - yMin)));
+
+  // 1) Silent-region shading — pull from continuous runs of silent points
+  //    so a single shaded rect covers the whole pause rather than per-frame.
+  ctx.fillStyle = 'rgba(92, 82, 71, 0.10)';  /* whisper @ 10% */
+  let runStart = null;
+  for (let i = 0; i < series.length; i++) {
+    const s = series[i].silent || series[i].value == null;
+    if (s && runStart == null) runStart = series[i].t;
+    if ((!s || i === series.length - 1) && runStart != null) {
+      const endT = series[i].t;
+      ctx.fillRect(xOf(runStart), 0, Math.max(1, xOf(endT) - xOf(runStart)), H);
+      runStart = null;
+    }
+  }
+
+  // 2) Hairline brass line — broken into segments at every silent point.
+  ctx.strokeStyle = 'rgba(227, 192, 142, 0.9)';   /* brass-hot @ 90% */
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  // Subtle glow so the line feels lit, not stamped.
+  ctx.shadowColor = 'rgba(227, 192, 142, 0.35)';
+  ctx.shadowBlur = 6;
+
+  let started = false;
+  ctx.beginPath();
+  for (const p of series) {
+    if (p.value == null || p.silent) {
+      started = false;
+      continue;
+    }
+    const x = xOf(p.t);
+    const y = yOf(p.value);
+    if (!started) { ctx.moveTo(x, y); started = true; }
+    else          { ctx.lineTo(x, y); }
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // 3) Single tiny dot for each isolated voiced sample (no neighbour to
+  //    connect to) — otherwise solo points vanish in pure-line rendering.
+  ctx.fillStyle = 'rgba(227, 192, 142, 0.95)';
+  for (let i = 0; i < series.length; i++) {
+    const p = series[i];
+    if (p.value == null || p.silent) continue;
+    const prev = i > 0 ? series[i - 1] : null;
+    const next = i < series.length - 1 ? series[i + 1] : null;
+    const prevOk = prev && prev.value != null && !prev.silent;
+    const nextOk = next && next.value != null && !next.silent;
+    if (!prevOk && !nextOk) {
+      ctx.beginPath();
+      ctx.arc(xOf(p.t), yOf(p.value), 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+// Redraw on resize so the canvases keep their crispness when the user
+// drags the window between displays of different DPR.
+let resizeRaf = null;
+window.addEventListener('resize', () => {
+  if (!lastAnalysis) return;
+  if (resizeRaf) cancelAnimationFrame(resizeRaf);
+  resizeRaf = requestAnimationFrame(() => presentAnalysis(lastAnalysis.data, lastAnalysis.duration));
+});
+
+// ── wire-up ─────────────────────────────────────────────────────────────────
+els.recBtn.addEventListener('click', () => {
+  const state = els.recBtn.dataset.state;
+  if (state === 'idle') initCamera();
+  else if (state === 'armed') startRecording();
+  else if (state === 'recording') stopRecording();
+});
+
+els.btnReset.addEventListener('click', resetForAnother);
+
+document.querySelectorAll('.text-btn[data-target]').forEach((btn) => {
+  btn.addEventListener('click', () => saveTarget(btn.dataset.target));
+});
+
+els.btnCopy.addEventListener('click', async () => {
+  if (!transcriptText) return;
+  try {
+    await navigator.clipboard.writeText(transcriptText);
+    const original = els.btnCopy.textContent;
+    els.btnCopy.textContent = '▸ Copied';
+    setTimeout(() => (els.btnCopy.textContent = original), 1400);
+  } catch (e) {
+    setStatus('Copy failed: ' + e.message, 'err');
+  }
+});
+
+// Set the year as Roman numerals just because the masthead deserves it.
+(function () {
+  const year = new Date().getFullYear();
+  // Cheap & correct enough for 1900-2100.
+  const roman = (n) => {
+    const map = [['M',1000],['CM',900],['D',500],['CD',400],['C',100],['XC',90],['L',50],['XL',40],['X',10],['IX',9],['V',5],['IV',4],['I',1]];
+    let out = ''; for (const [g, v] of map) { while (n >= v) { out += g; n -= v; } } return out;
+  };
+  $('year').textContent = roman(year);
+})();
+
+// Up-front capability checks. Whisper-via-WASM works in essentially every
+// modern browser, but MediaRecorder + getUserMedia still gate the whole flow.
+if (!navigator.mediaDevices || !window.MediaRecorder) {
+  setStatus('This browser cannot record media.', 'err');
+  setHint('Try a recent Chrome, Edge, Firefox, or Safari');
+  els.recBtn.disabled = true;
+}
+</script>
+
+</body>
+</html>
