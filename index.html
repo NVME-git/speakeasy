@@ -1453,73 +1453,102 @@ async function loadWhisper(onProgress) {
 }
 
 async function transcribeAudioBlob(audioBlob) {
+  // Step 1 — decode the recorded audio (webm/opus or mp4/aac) into a Float32
+  // buffer at 16 kHz mono. We do this BEFORE awaiting Whisper so that the
+  // analysis charts (which only need the PCM, not the transcript) can render
+  // even if Whisper fails for some reason.
+  const arrayBuf = await audioBlob.arrayBuffer();
+  // Always create a default AudioContext — browsers vary on whether the
+  // sampleRate option is honoured, and several throw on unsupported rates.
+  // Resample explicitly afterwards so behaviour is consistent.
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  let decoded;
+  try {
+    // Clone the ArrayBuffer — decodeAudioData transfers ownership and a
+    // detached buffer can't be re-used by anyone else later.
+    decoded = await ctx.decodeAudioData(arrayBuf.slice(0));
+  } catch (e) {
+    if (ctx.close) ctx.close();
+    throw new Error('Could not decode the audio: ' + (e.message || e.name || e));
+  }
+
+  let pcm16k;
+  try {
+    pcm16k = decoded.sampleRate === 16000
+      ? (decoded.numberOfChannels > 1 ? mixToMono(decoded) : decoded.getChannelData(0))
+      : await resampleTo16k(decoded);
+  } catch (e) {
+    if (ctx.close) ctx.close();
+    throw new Error('Resampling failed: ' + (e.message || e.name || e));
+  }
+  if (ctx.close) ctx.close();
+
+  const duration = pcm16k.length / 16000;
+
+  // Step 2 — kick off the analysis (pitch + volume) immediately. Pace
+  // depends on word timestamps so it'll be filled in later if Whisper
+  // succeeds with word-level output.
+  showAnalysisLoading();
+  // Defer the analysis work one frame so the loading state paints first.
+  let analysisData = null;
+  setTimeout(() => {
+    try {
+      analysisData = computeAnalysis(pcm16k, 16000, /* no words yet */ [], duration);
+      presentAnalysis(analysisData, duration);
+    } catch (e) {
+      console.error('analysis failed', e);
+      els.analysis.classList.add('hidden');
+    }
+  }, 60);
+
+  // Step 3 — Whisper transcription. The analysis charts already render with
+  // pitch + volume above; this only adds the transcript and the pace chart.
   if (!whisperPromise) whisperPromise = loadWhisper(() => {});
   const transcriber = await whisperPromise;
 
-  // Decode the recorded audio (webm/opus or mp4/aac) into a Float32 buffer
-  // resampled to 16 kHz mono — Whisper's required input format. AudioContext
-  // does the sample-rate conversion natively; we just pick channel 0.
   showTranscriptLoading('Transcribing', 'Whisper is listening…');
   setIndeterminate(true);
 
-  const arrayBuf = await audioBlob.arrayBuffer();
-  const ctx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)
-    ? new AudioContext({ sampleRate: 16000 })
-    : new AudioContext();
-  let decoded;
+  // Word-level timestamps power the pace chart, but not every Whisper
+  // export ships the alignment heads required to produce them. Try
+  // word-level first; if the model rejects it, fall back to plain text.
+  let result;
   try {
-    decoded = await ctx.decodeAudioData(arrayBuf);
+    result = await transcriber(pcm16k, {
+      chunk_length_s: 30,
+      stride_length_s: 5,
+      return_timestamps: 'word',
+    });
   } catch (e) {
-    throw new Error('Could not decode the audio: ' + e.message);
+    console.warn('word-level timestamps unavailable, retrying without:', e);
+    result = await transcriber(pcm16k, {
+      chunk_length_s: 30,
+      stride_length_s: 5,
+      return_timestamps: false,
+    });
   }
-
-  // If decodeAudioData ignored our 16 kHz hint (Safari does), resample
-  // via OfflineAudioContext into the target rate.
-  let pcm16k;
-  if (decoded.sampleRate === 16000) {
-    pcm16k = decoded.numberOfChannels > 1 ? mixToMono(decoded) : decoded.getChannelData(0);
-  } else {
-    pcm16k = await resampleTo16k(decoded);
-  }
-
-  // Word-level timestamps power the pace chart in the Analysis section.
-  // The chunked output looks like { text, chunks: [{text, timestamp:[s,e]}] }.
-  const result = await transcriber(pcm16k, {
-    chunk_length_s: 30,
-    stride_length_s: 5,
-    return_timestamps: 'word',
-    callback_function: () => {
-      // base.en streams in coarse chunks — better UX is a single calm
-      // reveal at the end with the drop-cap.
-    },
-  });
 
   transcriptText = (result.text ?? '').trim();
   showTranscript(transcriptText || '(no speech detected)');
 
-  // Build the transcript blob and save it now that we have content.
   blobs.text = new Blob([transcriptText || '(no speech detected)'], { type: 'text/plain;charset=utf-8' });
   els.metaText.textContent = `${blobs.text.size} bytes · ${transcriptText.split(/\s+/).filter(Boolean).length} words`;
   setTimeout(() => saveTarget('text'), 200);
-  ctx.close && ctx.close();
 
-  // Kick off the audio-analysis pass on the same Float32 buffer we already
-  // resampled for Whisper. setTimeout 60 ms gives the transcript reveal a
-  // beat to paint before we hog the main thread with autocorrelation.
+  // Step 4 — re-render the analysis charts now that we have word timestamps,
+  // so the Pace row gets populated. The other two charts redraw at the same
+  // settings, which is essentially free.
   const wordChunks = Array.isArray(result.chunks) ? result.chunks : [];
-  const duration = pcm16k.length / 16000;
-  showAnalysisLoading();
-  setTimeout(() => {
-    try {
-      const data = computeAnalysis(pcm16k, 16000, wordChunks, duration);
-      presentAnalysis(data, duration);
-    } catch (e) {
-      console.error('analysis failed', e);
-      // Hide the analysis section silently on failure rather than show a
-      // broken card — the four artefacts above still saved successfully.
-      els.analysis.classList.add('hidden');
-    }
-  }, 60);
+  if (wordChunks.length > 0) {
+    setTimeout(() => {
+      try {
+        const data = computeAnalysis(pcm16k, 16000, wordChunks, duration);
+        presentAnalysis(data, duration);
+      } catch (e) {
+        console.error('analysis re-render failed', e);
+      }
+    }, 60);
+  }
 }
 
 function mixToMono(audioBuffer) {
@@ -1531,14 +1560,26 @@ function mixToMono(audioBuffer) {
 }
 
 async function resampleTo16k(buffer) {
-  const ratio = 16000 / buffer.sampleRate;
-  const length = Math.floor(buffer.length * ratio);
+  // Mix to mono up-front (more reliable than relying on channelCountMode,
+  // which several browsers ignore for OfflineAudioContext destinations).
+  const mono = buffer.numberOfChannels > 1
+    ? mixToMono(buffer)
+    : buffer.getChannelData(0);
+
+  // Build a fresh single-channel AudioBuffer at the source rate, then
+  // render through OfflineAudioContext at 16 kHz. The browser handles the
+  // SRC; we just hand it samples and read the result.
+  const monoBuffer = new AudioBuffer({
+    length: mono.length,
+    numberOfChannels: 1,
+    sampleRate: buffer.sampleRate,
+  });
+  monoBuffer.copyToChannel(mono, 0);
+
+  const length = Math.ceil(mono.length * (16000 / buffer.sampleRate));
   const offline = new OfflineAudioContext(1, length, 16000);
   const src = offline.createBufferSource();
-  // Mono mixdown happens implicitly via channelCountMode below.
-  src.buffer = buffer;
-  src.channelCountMode = 'explicit';
-  src.channelCount = 1;
+  src.buffer = monoBuffer;
   src.connect(offline.destination);
   src.start();
   const rendered = await offline.startRendering();
@@ -1578,7 +1619,13 @@ function showTranscriptError(err) {
   els.transcriptLoad.classList.add('hidden');
   els.transcript.style.display = '';
   els.transcript.classList.remove('first-letter');
-  els.transcript.innerHTML = `<em style="color:var(--oxblood-hot)">Transcription failed.</em><br>${escapeHtml(err.message ?? String(err))}`;
+  const msg = err && (err.message || err.name) || String(err);
+  // Keep the full error visible — both line and stack — so debugging is
+  // possible from the page without DevTools. The stack is dimmed.
+  els.transcript.innerHTML =
+    `<em style="color:var(--oxblood-hot);display:block;margin-bottom:8px">Transcription failed.</em>` +
+    `<span style="color:var(--paper)">${escapeHtml(msg)}</span>` +
+    (err && err.stack ? `<pre style="margin:12px 0 0;font-family:var(--mono);font-size:11px;color:var(--whisper);white-space:pre-wrap;max-height:160px;overflow:auto">${escapeHtml(err.stack)}</pre>` : '');
 }
 
 function escapeHtml(s) {
